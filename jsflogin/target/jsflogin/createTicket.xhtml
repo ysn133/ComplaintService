@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+    <h:head>
+        <title>Create Ticket</title>
+        <h:outputStylesheet>
+            <![CDATA[
+                @import url('https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css');
+                @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
+            ]]>
+        </h:outputStylesheet>
+        <style>
+            body {
+                background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+                font-family: 'Inter', sans-serif;
+                margin: 0;
+                padding: 0;
+                height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .ticket-card {
+                background: #ffffff;
+                border: 1px solid #dbeafe;
+                box-shadow: 0 6px 25px rgba(59, 130, 246, 0.1);
+                border-radius: 1.25rem;
+                padding: 2rem;
+                width: 100%;
+                max-width: 450px;
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+            .ticket-card:hover {
+                transform: scale(1.02);
+                box-shadow: 0 8px 30px rgba(59, 130, 246, 0.15);
+            }
+            .input-field, .select-field, .textarea-field {
+                background: #f9fafb;
+                border: 1px solid #d1d5db;
+                color: #1f2937;
+                transition: border-color 0.3s ease, box-shadow 0.3s ease;
+                width: 100%;
+                border-radius: 0.75rem;
+                padding: 0.75rem 2.5rem;
+                font-size: 0.875rem;
+            }
+            .textarea-field {
+                padding: 0.75rem 1rem;
+                resize: none;
+                height: 120px;
+            }
+            .input-field:focus, .select-field:focus, .textarea-field:focus {
+                border-color: #60a5fa;
+                box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+                outline: none;
+            }
+            .input-field:hover, .select-field:hover, .textarea-field:hover {
+                border-color: #93c5fd;
+            }
+            .input-icon {
+                position: absolute;
+                left: 0.75rem;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #6b7280;
+            }
+            .submit-button {
+                background: linear-gradient(90deg, #60a5fa, #3b82f6);
+                border: none;
+                width: 100%;
+                color: #ffffff;
+                border-radius: 0.75rem;
+                padding: 0.75rem 1rem;
+                font-size: 0.875rem;
+                font-weight: 600;
+                transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            }
+            .submit-button:hover {
+                background: linear-gradient(90deg, #3b82f6, #60a5fa);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            }
+        </style>
+        <h:outputScript>
+            document.addEventListener('DOMContentLoaded', function() {
+                const inputs = document.querySelectorAll('.input-field, .select-field, .textarea-field');
+                const button = document.querySelector('.submit-button');
+
+                inputs.forEach(input => {
+                    input.addEventListener('focus', () => {
+                        input.style.transform = 'scale(1.02)';
+                        input.previousElementSibling.style.color = '#3b82f6';
+                    });
+                    input.addEventListener('blur', () => {
+                        input.style.transform = 'scale(1)';
+                        input.previousElementSibling.style.color = '#6b7280';
+                    });
+                });
+
+                button.addEventListener('mouseover', () => {
+                    button.style.boxShadow = '0 0 15px rgba(96, 165, 250, 0.5)';
+                });
+                button.addEventListener('mouseout', () => {
+                    button.style.boxShadow = 'none';
+                });
+            });
+        </h:outputScript>
+    </h:head>
+    <h:body>
+        <div class="ticket-card">
+            <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Create a Ticket</h2>
+            <h:form id="ticketForm">
+                <h:panelGrid columns="1" styleClass="space-y-5">
+                    <div class="relative flex flex-col items-center">
+                        <h:outputLabel for="title" value="Title" styleClass="block text-sm font-medium text-gray-600 mb-2" />
+                        <i class="fas fa-heading input-icon"></i>
+                        <h:inputText id="title" value="#{ticketController.title}" required="true" 
+                                     requiredMessage="Title is required" 
+                                     styleClass="input-field" />
+                    </div>
+                    <div class="relative flex flex-col items-center">
+                        <h:outputLabel for="description" value="Description" styleClass="block text-sm font-medium text-gray-600 mb-2" />
+                        <i class="fas fa-align-left input-icon"></i>
+                        <h:inputText id="description" value="#{ticketController.description}" required="true" 
+                                     requiredMessage="Description is required" 
+                                     styleClass="input-field" />
+                    </div>
+                    <div class="relative flex flex-col items-center">
+                        <h:outputLabel for="category" value="Category" styleClass="block text-sm font-medium text-gray-600 mb-2" />
+                        <i class="fas fa-list input-icon"></i>
+                        <h:selectOneMenu id="category" value="#{ticketController.category}" styleClass="select-field">
+                            <f:selectItem itemLabel="Technical Support" itemValue="Technical Support" />
+                            <f:selectItem itemLabel="Billing Issue" itemValue="Billing Issue" />
+                            <f:selectItem itemLabel="Feature Request" itemValue="Feature Request" />
+                            <f:selectItem itemLabel="General Inquiry" itemValue="General Inquiry" />
+                        </h:selectOneMenu>
+                    </div>
+                    <div class="relative flex flex-col items-center">
+                        <h:outputLabel for="content" value="Ticket Content" styleClass="block text-sm font-medium text-gray-600 mb-2" />
+                        <h:inputTextarea id="content" value="#{ticketController.content}" required="true" 
+                                         requiredMessage="Ticket content is required" 
+                                         styleClass="textarea-field" />
+                    </div>
+                    <div class="flex justify-center">
+                        <h:commandButton value="Submit Ticket" action="#{ticketController.submit}" 
+                                         styleClass="submit-button" />
+                    </div>
+                    <h:outputText value="#{ticketController.errorMessage}" styleClass="text-red-500 text-center text-sm mt-2" 
+                                  rendered="#{not empty ticketController.errorMessage}" />
+                </h:panelGrid>
+            </h:form>
+        </div>
+    </h:body>
+</html>

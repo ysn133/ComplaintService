@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+<h:head>
+    <title>User List</title>
+    <style>
+        .container { text-align: center; margin-top: 50px; }
+        table { margin: auto; border-collapse: collapse; width: 80%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .back-link { margin-top: 20px; display: inline-block; }
+    </style>
+</h:head>
+<h:body>
+    <div class="container">
+        <h2>User List</h2>
+        <h:dataTable value="#{userListController.allUsers}" var="user">
+            <h:column>
+                <f:facet name="header">Email</f:facet>
+                #{user.email}
+            </h:column>
+            <h:column>
+                <f:facet name="header">Password</f:facet>
+                #{user.password}
+            </h:column>
+        </h:dataTable>
+        <h:link outcome="login" styleClass="back-link">Back to Login</h:link>
+    </div>
+</h:body>
+</html>
