@@ -1,0 +1,44 @@
+# Maven build output
+**/target/
+
+# IntelliJ / JetBrains
+.idea/
+*.iml
+*.iws
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# VS Code
+.vscode/
+
+# OS / system files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Compiled files
+*.class
+
+# Docker artifacts
+*.war
+*.jar
+docker-compose.override.yml
+.env
+*.db
+
+# Misc
+*.swp
+*~
