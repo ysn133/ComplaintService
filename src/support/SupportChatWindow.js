@@ -18,11 +18,11 @@ const SupportChatWindow = ({ ticket }) => {
   const callIdRef = useRef(null);
   const [callStatus, setCallStatus] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
-  const [isOnHold, setIsOnHold] = useState(false);
   const [volume, setVolume] = useState(1.0);
   const [callDuration, setCallDuration] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [videoSize, setVideoSize] = useState({ width: 400, height: 225 });
+  const [videoPosition, setVideoPosition] = useState({ x: 20, y: 20 });
   const messagesEndRef = useRef(null);
   const localStreamRef = useRef(null);
   const remoteStreamRef = useRef(null);
@@ -30,17 +30,11 @@ const SupportChatWindow = ({ ticket }) => {
   const audioRef = useRef(null);
   const videoRef = useRef(null);
   const timerRef = useRef(null);
-  const screenShareModalRef = useRef(null);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [size, setSize] = useState({ width: 640, height: 480 });
-  const [dragging, setDragging] = useState(false);
-  const [resizing, setResizing] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0 });
+  const dragRef = useRef(null);
 
-  const token = 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiU1VQUE9SVCIsInVzZXJJZCI6Miwic3ViIjoiMiIsImlhdCI6MTc0NDg0MzI0NCwiZXhwIjoxNzQ0OTI5NjQ0fQ.w2UWpY-EPuThe1gnSCFEk2qrA_AZzznuMQz0tdq5pIc';
+  const token = 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiU1VQUE9SVCIsInVzZXJJZCI6Miwic3ViIjoiMiIsImlhdCI6MTc0NjIyNTcwMiwiZXhwIjoxNzQ2MzEyMTAyfQ.Jsc5CAthXQqXMHieLt28t-Is95dW_-j1x50yKvuCutk';
 
-  const initializePeerConnection = () => {
+  const initializePeerConnection = async () => {
     const pc = new RTCPeerConnection({
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
     });
@@ -65,28 +59,24 @@ const SupportChatWindow = ({ ticket }) => {
     pc.ontrack = (event) => {
       console.log('Support: ontrack fired, streams:', event.streams);
       const stream = event.streams[0];
+      remoteStreamRef.current = stream;
       console.log('Support: Stream details:', {
         id: stream.id,
-        audioTracks: stream.getAudioTracks(),
         videoTracks: stream.getVideoTracks(),
+        audioTracks: stream.getAudioTracks(),
         trackKind: event.track.kind,
       });
 
-      if (event.track.kind === 'audio') {
-        console.log('Support: Assigning audio stream');
-        remoteStreamRef.current = stream;
+      if (event.track.kind === 'video') {
+        console.log('Support: Video track detected');
+        setIsScreenSharing(true);
+      } else if (event.track.kind === 'audio') {
+        console.log('Support: Audio track detected');
         if (audioRef.current) {
           audioRef.current.srcObject = stream;
           audioRef.current.volume = volume;
           audioRef.current.muted = false;
           audioRef.current.play().catch(err => console.error('Support: Audio play error:', err));
-        }
-      } else if (event.track.kind === 'video') {
-        console.log('Support: Assigning video stream');
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(err => console.error('Support: Video play error:', err));
-          setIsScreenSharing(true);
         }
       }
 
@@ -109,8 +99,42 @@ const SupportChatWindow = ({ ticket }) => {
       }
     };
 
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localStreamRef.current = stream;
+      stream.getTracks().forEach((track) => {
+        console.log('Support: Adding audio track:', track);
+        pc.addTrack(track, stream);
+      });
+    } catch (error) {
+      console.error('Support: Error getting audio stream:', error);
+      return null;
+    }
+
     peerConnectionRef.current = pc;
+    return pc;
   };
+
+  useEffect(() => {
+    if (callStatus === 'connected' && remoteStreamRef.current) {
+      if (videoRef.current && remoteStreamRef.current.getVideoTracks().length > 0) {
+        console.log('Support: Assigning video stream to videoRef');
+        videoRef.current.srcObject = remoteStreamRef.current;
+        videoRef.current.play()
+          .then(() => console.log('Support: Video playback started'))
+          .catch(err => console.error('Support: Video play error:', err));
+      }
+      if (audioRef.current && remoteStreamRef.current.getAudioTracks().length > 0) {
+        console.log('Support: Assigning audio stream to audioRef');
+        audioRef.current.srcObject = remoteStreamRef.current;
+        audioRef.current.volume = volume;
+        audioRef.current.muted = false;
+        audioRef.current.play()
+          .then(() => console.log('Support: Audio playback started'))
+          .catch(err => console.error('Support: Audio play error:', err));
+      }
+    }
+  }, [callStatus, remoteStreamRef.current, volume]);
 
   useEffect(() => {
     const socket = new SockJS('https://192.168.0.102:8082/ws', null, { timeout: 30000 });
@@ -244,28 +268,20 @@ const SupportChatWindow = ({ ticket }) => {
       return;
     }
 
-    initializePeerConnection();
+    const pc = await initializePeerConnection();
+    if (!pc) {
+      handleRejectCall();
+      return;
+    }
+
     setCallStatus('connected');
     setIncomingCall(null);
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      localStreamRef.current = stream;
-      stream.getTracks().forEach((track) => {
-        console.log('Support: Adding audio track:', track);
-        const sender = peerConnectionRef.current.addTrack(track, stream);
-        console.log('Support: Audio sender added:', sender);
-      });
-
-      stompClientRef.current.publish({
-        destination: `/app/call/${callIdRef.current}/respond`,
-        body: JSON.stringify({ callId: callIdRef.current, accepted: true }),
-      });
-      startTimer(new Date());
-    } catch (error) {
-      console.error('Support: Error accepting call:', error);
-      handleRejectCall();
-    }
+    stompClientRef.current.publish({
+      destination: `/app/call/${callIdRef.current}/respond`,
+      body: JSON.stringify({ callId: callIdRef.current, accepted: true }),
+    });
+    startTimer(new Date());
   };
 
   const handleRejectCall = () => {
@@ -297,14 +313,6 @@ const SupportChatWindow = ({ ticket }) => {
         await peerConnectionRef.current.setLocalDescription(answer);
         console.log('Support: Answer SDP:', answer.sdp);
 
-        const transceivers = peerConnectionRef.current.getTransceivers();
-        transceivers.forEach((transceiver) => {
-          if (transceiver.receiver.track?.kind === 'video') {
-            transceiver.direction = 'recvonly';
-            console.log('Support: Set video receiver to recvonly');
-          }
-        });
-
         stompClientRef.current.publish({
           destination: `/app/call/${callIdRef.current}/signal`,
           body: JSON.stringify({ callId: callIdRef.current, type: 'answer', data: JSON.stringify(answer), fromUserId: 2, toUserId: 1 }),
@@ -332,12 +340,10 @@ const SupportChatWindow = ({ ticket }) => {
     remoteStreamRef.current = null;
     callIdRef.current = null;
     setIsMuted(false);
-    setIsOnHold(false);
     setVolume(1.0);
-    setIsRecording(false);
     setIsScreenSharing(false);
-    setPosition({ x: 0, y: 0 });
-    setSize({ width: 640, height: 480 });
+    setVideoSize({ width: 400, height: 225 });
+    setVideoPosition({ x: 20, y: 20 });
     setTimeout(() => setCallStatus(null), 2000);
   };
 
@@ -357,90 +363,43 @@ const SupportChatWindow = ({ ticket }) => {
     }
   };
 
-  const handleHoldToggle = () => {
-    if (localStreamRef.current) {
-      const audioTrack = localStreamRef.current.getAudioTracks()[0];
-      audioTrack.enabled = !isOnHold;
-      if (audioRef.current) audioRef.current.muted = isOnHold;
-      setIsOnHold(!isOnHold);
-    }
-  };
-
   const handleVolumeChange = (e) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
     if (audioRef.current) audioRef.current.volume = newVolume;
   };
 
-  const handleRecordingToggle = () => {
-    setIsRecording(!isRecording);
-  };
-
   const getCallQuality = () => {
     return callDuration < 10 ? 'Good' : 'Excellent';
   };
 
-  const statuses = ['Open', 'In Progress', 'Resolved', 'Closed'];
+  const handleMouseDown = (e) => {
+    const rect = dragRef.current.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
 
-  // Dragging logic
-  const handleDragMouseDown = (e) => {
-    if (e.target.className.includes('drag-handle')) {
-      setDragging(true);
-      const rect = screenShareModalRef.current.getBoundingClientRect();
-      setDragOffset({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
+    const handleMouseMove = (moveEvent) => {
+      setVideoPosition({
+        x: moveEvent.clientX - offsetX,
+        y: moveEvent.clientY - offsetY,
       });
-    }
-  };
-
-  const handleDragMouseMove = (e) => {
-    if (dragging) {
-      const newX = e.clientX - dragOffset.x;
-      const newY = e.clientY - dragOffset.y;
-      setPosition({ x: Math.max(0, newX), y: Math.max(0, newY) });
-    }
-  };
-
-  const handleDragMouseUp = () => {
-    setDragging(false);
-  };
-
-  // Resizing logic
-  const handleResizeMouseDown = (e) => {
-    setResizing(true);
-    setResizeStart({ x: e.clientX, y: e.clientY });
-    e.preventDefault();
-  };
-
-  const handleResizeMouseMove = (e) => {
-    if (resizing) {
-      const deltaX = e.clientX - resizeStart.x;
-      const deltaY = e.clientY - resizeStart.y;
-      setSize({
-        width: Math.max(300, size.width + deltaX),
-        height: Math.max(200, size.height + deltaY),
-      });
-      setResizeStart({ x: e.clientX, y: e.clientY });
-    }
-  };
-
-  const handleResizeMouseUp = () => {
-    setResizing(false);
-  };
-
-  useEffect(() => {
-    if (dragging || resizing) {
-      window.addEventListener('mousemove', dragging ? handleDragMouseMove : handleResizeMouseMove);
-      window.addEventListener('mouseup', dragging ? handleDragMouseUp : handleResizeMouseUp);
-    }
-    return () => {
-      window.removeEventListener('mousemove', handleDragMouseMove);
-      window.removeEventListener('mousemove', handleResizeMouseMove);
-      window.removeEventListener('mouseup', handleDragMouseUp);
-      window.removeEventListener('mouseup', handleResizeMouseUp);
     };
-  }, [dragging, resizing]);
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleResize = (e) => {
+    const newWidth = Math.max(200, Math.min(800, parseInt(e.target.value)));
+    setVideoSize({ width: newWidth, height: newWidth * 9 / 16 });
+  };
+
+  const statuses = ['Open', 'In Progress', 'Resolved', 'Closed'];
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white dark:bg-gray-800">
@@ -524,15 +483,15 @@ const SupportChatWindow = ({ ticket }) => {
           </div>
 
           {incomingCall && !callStatus && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-80">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Incoming Call</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">Incoming call for Ticket #{incomingCall.ticketId}</p>
-                <div className="flex space-x-4">
-                  <button onClick={handleAcceptCall} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+            <div className="fixed bottom-4 right-4 z-50">
+              <div className="bg-gray-900 text-white p-4 rounded-xl shadow-2xl w-80 transform transition-all duration-300 hover:shadow-xl">
+                <h3 className="text-lg font-bold mb-3">Incoming Call</h3>
+                <p className="text-sm text-gray-400 mb-4">Ticket #{incomingCall.ticketId}</p>
+                <div className="flex space-x-2">
+                  <button onClick={handleAcceptCall} className="flex-1 py-2 bg-green-600 rounded-lg hover:bg-green-700 text-sm font-medium transition">
                     Accept
                   </button>
-                  <button onClick={handleRejectCall} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                  <button onClick={handleRejectCall} className="flex-1 py-2 bg-red-600 rounded-lg hover:bg-red-700 text-sm font-medium transition">
                     Reject
                   </button>
                 </div>
@@ -541,69 +500,94 @@ const SupportChatWindow = ({ ticket }) => {
           )}
 
           {callStatus && (
-            <div className="fixed bottom-4 right-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg w-64 z-50">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Voice Call Controls</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                {callStatus === 'connected' && `Duration: ${formatDuration(callDuration)}`}
-                {callStatus === 'ended' && `Call Ended - Duration: ${formatDuration(callDuration)}`}
-              </p>
-              {callStatus !== 'ended' && (
-                <div className="flex flex-col space-y-4">
-                  <div className="flex space-x-2 flex-wrap">
-                    <button onClick={handleMuteToggle} className={`px-3 py-1 rounded-lg ${isMuted ? 'bg-yellow-500' : 'bg-gray-500'} text-white`}>
-                      {isMuted ? 'Unmute' : 'Mute'}
-                    </button>
-                    <button onClick={handleHoldToggle} className={`px-3 py-1 rounded-lg ${isOnHold ? 'bg-yellow-500' : 'bg-gray-500'} text-white`}>
-                      {isOnHold ? 'Resume' : 'Hold'}
-                    </button>
-                    <button onClick={handleRecordingToggle} className={`px-3 py-1 rounded-lg ${isRecording ? 'bg-red-500' : 'bg-gray-500'} text-white`}>
-                      {isRecording ? 'Stop Recording' : 'Record'}
-                    </button>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <label className="text-sm text-gray-600">Volume:</label>
-                    <input type="range" min="0" max="1" step="0.1" value={volume} onChange={handleVolumeChange} className="w-full" />
-                  </div>
-                  <button onClick={handleHangUp} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-                    Hang Up
-                  </button>
+            <div className="fixed bottom-4 right-4 z-50">
+              <div className="bg-gray-900 text-white p-4 rounded-xl shadow-2xl w-80 transform transition-all duration-300 hover:shadow-xl">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-lg font-bold">Call with Client</h3>
+                  <span className="text-sm bg-gray-700 px-2 py-1 rounded-full">
+                    {formatDuration(callDuration)}
+                  </span>
                 </div>
-              )}
-              {callStatus === 'ended' && (
-                <button onClick={() => setCallStatus(null)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 w-full">
-                  Close
-                </button>
-              )}
-              <audio ref={audioRef} autoPlay playsInline muted={false} />
+                <p className="text-sm text-gray-400 mb-4">
+                  {callStatus === 'connected' && `Quality: ${getCallQuality()}`}
+                  {callStatus === 'ended' && 'Call Ended'}
+                </p>
+                {callStatus !== 'ended' && (
+                  <div className="flex flex-col space-y-3">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={handleMuteToggle}
+                        className={`flex-1 py-2 rounded-lg text-sm font-medium ${
+                          isMuted ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-gray-600 hover:bg-gray-700'
+                        } transition`}
+                      >
+                        {isMuted ? 'Unmute' : 'Mute'}
+                      </button>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-400">Volume:</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={volume}
+                        onChange={handleVolumeChange}
+                        className="w-full accent-blue-500"
+                      />
+                    </div>
+                    <button
+                      onClick={handleHangUp}
+                      className="py-2 rounded-lg bg-red-600 hover:bg-red-700 text-sm font-medium transition"
+                    >
+                      End Call
+                    </button>
+                  </div>
+                )}
+                {callStatus === 'ended' && (
+                  <button
+                    onClick={() => setCallStatus(null)}
+                    className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-sm font-medium transition"
+                  >
+                    Close
+                  </button>
+                )}
+                <audio ref={audioRef} autoPlay playsInline muted={false} />
+              </div>
             </div>
           )}
 
           {isScreenSharing && (
             <div
-              ref={screenShareModalRef}
-              className="absolute bg-white dark:bg-gray-800 rounded-lg shadow-lg z-50 overflow-hidden"
-              style={{ left: position.x, top: position.y, width: `${size.width}px`, height: `${size.height}px` }}
+              ref={dragRef}
+              className="fixed bg-gray-800 rounded-lg shadow-lg p-2 z-50"
+              style={{ left: `${videoPosition.x}px`, top: `${videoPosition.y}px`, width: `${videoSize.width}px` }}
             >
               <div
-                className="drag-handle p-2 bg-gray-200 dark:bg-gray-700 cursor-move flex justify-between items-center"
-                onMouseDown={handleDragMouseDown}
+                className="w-full h-6 bg-gray-700 rounded-t-lg cursor-move flex items-center justify-center text-gray-300 text-sm"
+                onMouseDown={handleMouseDown}
               >
-                <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                  Screen Share - Duration: {formatDuration(callDuration)}
-                </span>
-                <div>
-                  <button onClick={handleHangUp} className="ml-2 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700">
-                    End Call
-                  </button>
-                </div>
+                Drag to Move
               </div>
-              <div className="p-4 flex-1">
-                <video ref={videoRef} autoPlay playsInline muted={false} className="w-full h-full object-contain rounded-lg border-2 border-red-500" />
-              </div>
-              <div
-                className="absolute bottom-0 right-0 w-4 h-4 bg-gray-500 cursor-se-resize"
-                onMouseDown={handleResizeMouseDown}
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted={false}
+                className="w-full rounded-b-lg"
+                style={{ height: `${videoSize.height}px` }}
               />
+              <div className="mt-2 flex items-center space-x-2">
+                <span className="text-sm text-gray-400">Width:</span>
+                <input
+                  type="range"
+                  min="200"
+                  max="800"
+                  value={videoSize.width}
+                  onChange={handleResize}
+                  className="w-full accent-blue-500"
+                />
+              </div>
             </div>
           )}
         </>

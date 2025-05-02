@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { formatDistanceToNow } from 'date-fns';
-import { PhoneIcon } from '@heroicons/react/24/outline';
+import { PhoneIcon, VideoCameraIcon } from '@heroicons/react/24/outline';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
@@ -16,28 +16,21 @@ const ChatWindow = ({ ticket }) => {
   const callIdRef = useRef(null);
   const [pendingCall, setPendingCall] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
-  const [isOnHold, setIsOnHold] = useState(false);
   const [volume, setVolume] = useState(1.0);
   const [callDuration, setCallDuration] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [showPreview, setShowPreview] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
   const messagesEndRef = useRef(null);
   const localStreamRef = useRef(null);
   const screenStreamRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const audioRef = useRef(null);
   const localVideoRef = useRef(null);
-  const callModalRef = useRef(null);
   const timerRef = useRef(null);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [dragging, setDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
-  const token = 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiVVNFUiIsInVzZXJJZCI6Miwic3ViIjoiMiIsImlhdCI6MTc0NDg0Mzg1NiwiZXhwIjoxNzQ0OTMwMjU2fQ.oqTQ5axJE-IDeluB6__OsbE82VzUIBULKEM6VCimbgk';
+  const token = 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQ0xJRU5UIiwidXNlcklkIjo3LCJzdWIiOiI3IiwiaWF0IjoxNzQ2MjIzMTE1LCJleHAiOjE3NDYzMDk1MTV9.n0m0SioHWbtNfrS8PaYgfRRbfM9YTY4rgZ0FApZopS0';
 
-  const initializePeerConnection = () => {
+  const initializePeerConnection = async () => {
     const pc = new RTCPeerConnection({
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
     });
@@ -62,6 +55,12 @@ const ChatWindow = ({ ticket }) => {
     pc.ontrack = (event) => {
       console.log('Client: ontrack fired, streams:', event.streams);
       const stream = event.streams[0];
+      console.log('Client: Stream details:', {
+        id: stream.id,
+        audioTracks: stream.getAudioTracks(),
+        videoTracks: stream.getVideoTracks(),
+        trackKind: event.track.kind,
+      });
       if (event.track.kind === 'audio' && audioRef.current) {
         console.log('Client: Assigning remote audio stream');
         audioRef.current.srcObject = stream;
@@ -80,7 +79,22 @@ const ChatWindow = ({ ticket }) => {
       }
     };
 
+    try {
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localStreamRef.current = audioStream;
+      audioStream.getTracks().forEach((track) => {
+        console.log('Client: Adding audio track:', track);
+        pc.addTrack(track, audioStream);
+      });
+    } catch (error) {
+      console.error('Client: Error getting audio stream:', error);
+      setCallStatus('ended');
+      cleanupCall();
+      return null;
+    }
+
     peerConnectionRef.current = pc;
+    return pc;
   };
 
   useEffect(() => {
@@ -200,16 +214,6 @@ const ChatWindow = ({ ticket }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  useEffect(() => {
-    if (isScreenSharing && screenStreamRef.current && localVideoRef.current) {
-      console.log('Client: Assigning screen stream to local video');
-      localVideoRef.current.srcObject = screenStreamRef.current;
-      localVideoRef.current.play()
-        .then(() => console.log('Client: Local video playback started'))
-        .catch(err => console.error('Client: Local video play error:', err));
-    }
-  }, [isScreenSharing, screenStreamRef.current]);
-
   const startTimer = (startTime) => {
     const start = new Date(startTime);
     timerRef.current = setInterval(() => {
@@ -250,14 +254,6 @@ const ChatWindow = ({ ticket }) => {
     }
 
     try {
-      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      localStreamRef.current = audioStream;
-      audioStream.getTracks().forEach((track) => {
-        console.log('Client: Adding audio track:', track);
-        const sender = peerConnectionRef.current.addTrack(track, audioStream);
-        console.log('Client: Audio sender added:', sender);
-      });
-
       const offer = await peerConnectionRef.current.createOffer();
       await peerConnectionRef.current.setLocalDescription(offer);
       console.log('Client: Initial offer SDP:', offer.sdp);
@@ -280,11 +276,14 @@ const ChatWindow = ({ ticket }) => {
     }
 
     try {
+      console.log('Client: Requesting screen share via getDisplayMedia');
       const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      console.log('Client: getDisplayMedia succeeded, stream:', screenStream);
       screenStreamRef.current = screenStream;
       setIsScreenSharing(true);
 
       const videoTrack = screenStream.getVideoTracks()[0];
+      console.log('Client: Video track:', videoTrack);
       const videoSender = peerConnectionRef.current.addTrack(videoTrack, screenStream);
       console.log('Client: Video sender added:', videoSender);
 
@@ -301,6 +300,14 @@ const ChatWindow = ({ ticket }) => {
         destination: `/app/call/${callIdRef.current}/signal`,
         body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: 1, toUserId: 2 }),
       });
+
+      if (localVideoRef.current) {
+        console.log('Client: Assigning screen stream to local video');
+        localVideoRef.current.srcObject = screenStream;
+        localVideoRef.current.play()
+          .then(() => console.log('Client: Local video playback started'))
+          .catch(err => console.error('Client: Local video play error:', err));
+      }
     } catch (error) {
       console.error('Client: Error in startScreenSharing:', error);
       setIsScreenSharing(false);
@@ -314,6 +321,7 @@ const ChatWindow = ({ ticket }) => {
       screenStreamRef.current = null;
     }
     setIsScreenSharing(false);
+    setShowPreview(false);
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
 
     if (!peerConnectionRef.current || !stompClientRef.current || !callIdRef.current) {
@@ -381,12 +389,9 @@ const ChatWindow = ({ ticket }) => {
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     callIdRef.current = null;
     setIsMuted(false);
-    setIsOnHold(false);
     setVolume(1.0);
-    setIsRecording(false);
     setIsScreenSharing(false);
-    setIsMinimized(false);
-    setShowPreview(true);
+    setShowPreview(false);
     setTimeout(() => setCallStatus(null), 2000);
   };
 
@@ -397,7 +402,8 @@ const ChatWindow = ({ ticket }) => {
     }
 
     setCallStatus('ringing');
-    initializePeerConnection();
+    const pc = await initializePeerConnection();
+    if (!pc) return;
 
     const tempCallId = Date.now().toString();
     callIdRef.current = tempCallId;
@@ -424,63 +430,15 @@ const ChatWindow = ({ ticket }) => {
     }
   };
 
-  const handleHoldToggle = () => {
-    if (localStreamRef.current) {
-      const audioTrack = localStreamRef.current.getAudioTracks()[0];
-      audioTrack.enabled = !isOnHold;
-      if (audioRef.current) audioRef.current.muted = isOnHold;
-      setIsOnHold(!isOnHold);
-    }
-  };
-
   const handleVolumeChange = (e) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
     if (audioRef.current) audioRef.current.volume = newVolume;
   };
 
-  const handleRecordingToggle = () => {
-    setIsRecording(!isRecording);
-  };
-
   const getCallQuality = () => {
     return callDuration < 10 ? 'Good' : 'Excellent';
   };
-
-  // Dragging logic
-  const handleMouseDown = (e) => {
-    if (e.target.className.includes('drag-handle')) {
-      setDragging(true);
-      const rect = callModalRef.current.getBoundingClientRect();
-      setDragOffset({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      });
-    }
-  };
-
-  const handleMouseMove = (e) => {
-    if (dragging) {
-      const newX = e.clientX - dragOffset.x;
-      const newY = e.clientY - dragOffset.y;
-      setPosition({ x: Math.max(0, newX), y: Math.max(0, newY) });
-    }
-  };
-
-  const handleMouseUp = () => {
-    setDragging(false);
-  };
-
-  useEffect(() => {
-    if (dragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    }
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [dragging]);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-light-bg dark:bg-dark-bg">
@@ -540,94 +498,90 @@ const ChatWindow = ({ ticket }) => {
           </div>
 
           {callStatus && (
-            <div
-              ref={callModalRef}
-              className="absolute bg-white dark:bg-gray-800 rounded-lg shadow-lg w-96 z-50"
-              style={{ left: position.x, top: position.y }}
-            >
-              <div
-                className="drag-handle p-2 bg-gray-200 dark:bg-gray-700 cursor-move flex justify-between items-center"
-                onMouseDown={handleMouseDown}
-              >
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Voice Call</h3>
-                <button
-                  onClick={() => setIsMinimized(!isMinimized)}
-                  className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
-                >
-                  {isMinimized ? '▲' : '▼'}
-                </button>
-              </div>
-              {!isMinimized && (
-                <div className="p-6">
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    {callStatus === 'ringing' && 'Calling Support...'}
-                    {callStatus === 'connected' && `Connected - Duration: ${formatDuration(callDuration)}${isScreenSharing ? ' (Screen Sharing)' : ''}`}
-                    {callStatus === 'ended' && `Call Ended - Duration: ${formatDuration(callDuration)}`}
-                  </p>
-                  {isScreenSharing && showPreview && (
-                    <div className="mb-4">
-                      <video ref={localVideoRef} autoPlay playsInline muted className="w-full max-h-64 rounded-lg border" />
+            <div className="fixed bottom-4 right-4 z-50">
+              <div className="bg-gray-900 text-white p-4 rounded-xl shadow-2xl w-80 transform transition-all duration-300 hover:shadow-xl">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-lg font-bold">Call with Support</h3>
+                  <span className="text-sm bg-gray-700 px-2 py-1 rounded-full">
+                    {callStatus === 'ringing' ? 'Ringing...' : formatDuration(callDuration)}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-400 mb-4">
+                  {callStatus === 'ringing' && 'Waiting for Support...'}
+                  {callStatus === 'connected' && `Quality: ${getCallQuality()}`}
+                  {callStatus === 'ended' && 'Call Ended'}
+                </p>
+                {callStatus !== 'ended' && (
+                  <div className="flex flex-col space-y-3">
+                    <div className="flex space-x-2">
                       <button
-                        onClick={() => setShowPreview(false)}
-                        className="mt-2 text-sm text-gray-500 hover:text-gray-700"
+                        onClick={handleMuteToggle}
+                        className={`flex-1 py-2 rounded-lg text-sm font-medium ${
+                          isMuted ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-gray-600 hover:bg-gray-700'
+                        } transition`}
                       >
-                        Hide Preview
+                        {isMuted ? 'Unmute' : 'Mute'}
+                      </button>
+                      <button
+                        onClick={startScreenSharing}
+                        className={`flex-1 py-2 rounded-lg text-sm font-medium ${
+                          isScreenSharing ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-600 hover:bg-gray-700'
+                        } transition`}
+                        disabled={isScreenSharing}
+                      >
+                        Share Screen
                       </button>
                     </div>
-                  )}
-                  {isScreenSharing && !showPreview && (
+                    {isScreenSharing && (
+                      <button
+                        onClick={() => setShowPreview(!showPreview)}
+                        className="py-2 rounded-lg text-sm font-medium bg-blue-500 hover:bg-blue-600 transition"
+                      >
+                        {showPreview ? 'Hide Preview' : 'Show Preview'}
+                      </button>
+                    )}
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-400">Volume:</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={volume}
+                        onChange={handleVolumeChange}
+                        className="w-full accent-blue-500"
+                      />
+                    </div>
                     <button
-                      onClick={() => setShowPreview(true)}
-                      className="mb-4 text-sm text-gray-500 hover:text-gray-700"
+                      onClick={handleHangUp}
+                      className="py-2 rounded-lg bg-red-600 hover:bg-red-700 text-sm font-medium transition"
                     >
-                      Show Preview
+                      End Call
                     </button>
-                  )}
-                  {callStatus !== 'ended' && (
-                    <>
-                      <p className="text-sm text-gray-500 mb-2">Quality: {getCallQuality()}</p>
-                      <div className="flex flex-col space-y-4">
-                        <div className="flex space-x-2 flex-wrap">
-                          <button onClick={handleMuteToggle} className={`px-3 py-1 rounded-lg ${isMuted ? 'bg-yellow-500' : 'bg-gray-500'} text-white`}>
-                            {isMuted ? 'Unmute' : 'Mute'}
-                          </button>
-                          <button onClick={handleHoldToggle} className={`px-3 py-1 rounded-lg ${isOnHold ? 'bg-yellow-500' : 'bg-gray-500'} text-white`}>
-                            {isOnHold ? 'Resume' : 'Hold'}
-                          </button>
-                          <button onClick={handleRecordingToggle} className={`px-3 py-1 rounded-lg ${isRecording ? 'bg-red-500' : 'bg-gray-500'} text-white`}>
-                            {isRecording ? 'Stop Recording' : 'Record'}
-                          </button>
-                          <button
-                            onClick={startScreenSharing}
-                            className={`px-3 py-1 rounded-lg ${isScreenSharing ? 'bg-blue-500' : 'bg-gray-500'} text-white`}
-                            disabled={isScreenSharing}
-                          >
-                            {isScreenSharing ? 'Sharing' : 'Share Screen'}
-                          </button>
-                          {isScreenSharing && (
-                            <button onClick={stopScreenSharing} className="px-3 py-1 rounded-lg bg-blue-500 text-white hover:bg-blue-600">
-                              Stop Sharing
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <label className="text-sm text-gray-600">Volume:</label>
-                          <input type="range" min="0" max="1" step="0.1" value={volume} onChange={handleVolumeChange} className="w-full" />
-                        </div>
-                        <button onClick={handleHangUp} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
-                          Hang Up
-                        </button>
-                      </div>
-                    </>
-                  )}
-                  {callStatus === 'ended' && (
-                    <button onClick={() => setCallStatus(null)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition w-full">
-                      Close
-                    </button>
-                  )}
-                  <audio ref={audioRef} autoPlay playsInline muted={false} />
-                </div>
-              )}
+                  </div>
+                )}
+                {callStatus === 'ended' && (
+                  <button
+                    onClick={() => setCallStatus(null)}
+                    className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-sm font-medium transition"
+                  >
+                    Close
+                  </button>
+                )}
+                <audio ref={audioRef} autoPlay playsInline muted={false} />
+              </div>
+            </div>
+          )}
+
+          {isScreenSharing && showPreview && (
+            <div className="fixed bottom-20 right-20 z-50 bg-gray-800 rounded-lg shadow-lg p-2">
+              <video ref={localVideoRef} autoPlay playsInline muted className="w-64 h-36 rounded-lg" />
+              <button
+                onClick={stopScreenSharing}
+                className="mt-2 w-full py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition"
+              >
+                Stop Sharing
+              </button>
             </div>
           )}
         </>
