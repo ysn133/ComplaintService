@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { formatDistanceToNow } from 'date-fns';
-import { PhoneIcon } from '@heroicons/react/24/outline';
+import { PhoneIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
@@ -23,14 +23,24 @@ const SupportChatWindow = ({ ticket }) => {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [videoSize, setVideoSize] = useState({ width: 400, height: 225 });
   const [videoPosition, setVideoPosition] = useState({ x: 20, y: 20 });
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isVideoMinimized, setIsVideoMinimized] = useState(false);
+  const [barPosition, setBarPosition] = useState({ x: 20, y: 20 });
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const messagesEndRef = useRef(null);
   const localStreamRef = useRef(null);
   const remoteStreamRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const audioRef = useRef(null);
   const videoRef = useRef(null);
-  const timerRef = useRef(null);
   const dragRef = useRef(null);
+  const barDragRef = useRef(null);
+  const timerRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isBarDragging, setIsBarDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [barDragOffset, setBarDragOffset] = useState({ x: 0, y: 0 });
 
   const token = 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiU1VQUE9SVCIsInVzZXJJZCI6Miwic3ViIjoiMiIsImlhdCI6MTc0NjIyNTcwMiwiZXhwIjoxNzQ2MzEyMTAyfQ.Jsc5CAthXQqXMHieLt28t-Is95dW_-j1x50yKvuCutk';
 
@@ -76,7 +86,7 @@ const SupportChatWindow = ({ ticket }) => {
           audioRef.current.srcObject = stream;
           audioRef.current.volume = volume;
           audioRef.current.muted = false;
-          audioRef.current.play().catch(err => console.error('Support: Audio play error:', err));
+          audioRef.current.play().catch(err => console.error('Support: Audio play error:', err.message));
         }
       }
 
@@ -85,6 +95,7 @@ const SupportChatWindow = ({ ticket }) => {
         if (event.track.kind === 'video') {
           console.log('Support: Video track removed, stopping screen sharing');
           setIsScreenSharing(false);
+          setIsVideoMinimized(false);
           if (videoRef.current) videoRef.current.srcObject = null;
         }
       };
@@ -93,7 +104,7 @@ const SupportChatWindow = ({ ticket }) => {
     pc.onconnectionstatechange = () => {
       console.log('Support: Connection state:', pc.connectionState);
       if (pc.connectionState === 'failed') {
-        console.error('Support: Connection failed');
+        console.error('Support: Connection failed:', pc.connectionState);
         setCallStatus('ended');
         cleanupCall();
       }
@@ -122,7 +133,7 @@ const SupportChatWindow = ({ ticket }) => {
         videoRef.current.srcObject = remoteStreamRef.current;
         videoRef.current.play()
           .then(() => console.log('Support: Video playback started'))
-          .catch(err => console.error('Support: Video play error:', err));
+          .catch(err => console.error('Support: Video play error:', err.message));
       }
       if (audioRef.current && remoteStreamRef.current.getAudioTracks().length > 0) {
         console.log('Support: Assigning audio stream to audioRef');
@@ -131,10 +142,20 @@ const SupportChatWindow = ({ ticket }) => {
         audioRef.current.muted = false;
         audioRef.current.play()
           .then(() => console.log('Support: Audio playback started'))
-          .catch(err => console.error('Support: Audio play error:', err));
+          .catch(err => console.error('Support: Audio play error:', err.message));
       }
     }
-  }, [callStatus, remoteStreamRef.current, volume]);
+  }, [callStatus, volume, isScreenSharing]);
+
+  useEffect(() => {
+    if (isScreenSharing && (!isVideoMinimized || !isMinimized) && videoRef.current && remoteStreamRef.current) {
+      console.log('Support: Reassigning video stream to videoRef');
+      videoRef.current.srcObject = remoteStreamRef.current;
+      videoRef.current.play()
+        .then(() => console.log('Support: Video playback started after reassignment'))
+        .catch(err => console.error('Support: Video play error after reassignment:', err.message));
+    }
+  }, [isScreenSharing, isVideoMinimized, isMinimized]);
 
   useEffect(() => {
     const socket = new SockJS('https://192.168.0.102:8082/ws', null, { timeout: 30000 });
@@ -323,7 +344,7 @@ const SupportChatWindow = ({ ticket }) => {
         console.log('Support: Added ICE candidate:', candidate);
       }
     } catch (error) {
-      console.error('Support: Error handling WebRTC signal:', error);
+      console.error('Support: Error handling WebRTC signal:', error.message);
     }
   };
 
@@ -342,8 +363,12 @@ const SupportChatWindow = ({ ticket }) => {
     setIsMuted(false);
     setVolume(1.0);
     setIsScreenSharing(false);
+    setIsVideoMinimized(false);
     setVideoSize({ width: 400, height: 225 });
     setVideoPosition({ x: 20, y: 20 });
+    setBarPosition({ x: 20, y: 20 });
+    setIsMinimized(false);
+    setIsFullscreen(false);
     setTimeout(() => setCallStatus(null), 2000);
   };
 
@@ -367,37 +392,130 @@ const SupportChatWindow = ({ ticket }) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
     if (audioRef.current) audioRef.current.volume = newVolume;
+    if (videoRef.current && remoteStreamRef.current) {
+      console.log('Support: Reassigning video stream after volume change');
+      videoRef.current.srcObject = remoteStreamRef.current;
+      videoRef.current.play()
+        .then(() => console.log('Support: Video playback started after volume change'))
+        .catch(err => console.error('Support: Video play error after volume change:', err.message));
+    }
   };
 
   const getCallQuality = () => {
     return callDuration < 10 ? 'Good' : 'Excellent';
   };
 
-  const handleMouseDown = (e) => {
-    const rect = dragRef.current.getBoundingClientRect();
-    const offsetX = e.clientX - rect.left;
-    const offsetY = e.clientY - rect.top;
-
-    const handleMouseMove = (moveEvent) => {
-      setVideoPosition({
-        x: moveEvent.clientX - offsetX,
-        y: moveEvent.clientY - offsetY,
+  const handleDragStart = (e) => {
+    if (dragRef.current) {
+      const rect = dragRef.current.getBoundingClientRect();
+      setDragOffset({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
       });
-    };
-
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+      setIsDragging(true);
+    }
   };
 
-  const handleResize = (e) => {
-    const newWidth = Math.max(200, Math.min(800, parseInt(e.target.value)));
-    setVideoSize({ width: newWidth, height: newWidth * 9 / 16 });
+  const handleDragMove = (e) => {
+    if (isDragging) {
+      setVideoPosition({
+        x: Math.max(0, e.clientX - dragOffset.x),
+        y: Math.max(0, e.clientY - dragOffset.y),
+      });
+    }
   };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  const handleBarDragStart = (e) => {
+    if (barDragRef.current) {
+      const rect = barDragRef.current.getBoundingClientRect();
+      setBarDragOffset({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+      setIsBarDragging(true);
+    }
+  };
+
+  const handleBarDragMove = (e) => {
+    if (isBarDragging) {
+      setBarPosition({
+        x: Math.max(0, e.clientX - barDragOffset.x),
+        y: Math.max(0, e.clientY - barDragOffset.y),
+      });
+    }
+  };
+
+  const handleBarDragEnd = () => {
+    setIsBarDragging(false);
+  };
+
+  const handleResizeStart = (e) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
+  const handleResizeMove = (e) => {
+    if (isResizing && dragRef.current) {
+      const rect = dragRef.current.getBoundingClientRect();
+      const newWidth = Math.max(200, Math.min(800, e.clientX - rect.left));
+      setVideoSize({
+        width: newWidth,
+        height: newWidth * 9 / 16,
+      });
+    }
+  };
+
+  const handleResizeEnd = () => {
+    setIsResizing(false);
+  };
+
+  const toggleFullscreen = () => {
+    if (!dragRef.current) {
+      console.error('Support: Cannot toggle fullscreen: dragRef is null');
+      return;
+    }
+    if (!isFullscreen) {
+      try {
+        dragRef.current.requestFullscreen().then(() => {
+          setIsFullscreen(true);
+          console.log('Support: Entered fullscreen');
+        }).catch(err => {
+          console.error('Support: Fullscreen error:', err.message);
+          alert('Failed to enter fullscreen. Please ensure the app is running over HTTPS.');
+        });
+      } catch (error) {
+        console.error('Support: Fullscreen request failed:', error.message);
+      }
+    } else {
+      try {
+        document.exitFullscreen().then(() => {
+          setIsFullscreen(false);
+          console.log('Support: Exited fullscreen');
+        }).catch(err => console.error('Support: Exit fullscreen error:', err.message));
+      } catch (error) {
+        console.error('Support: Exit fullscreen failed:', error.message);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (isDragging || isResizing || isBarDragging) {
+      window.addEventListener('mousemove', isDragging ? handleDragMove : isResizing ? handleResizeMove : handleBarDragMove);
+      window.addEventListener('mouseup', isDragging ? handleDragEnd : isResizing ? handleResizeEnd : handleBarDragEnd);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleDragMove);
+      window.removeEventListener('mousemove', handleResizeMove);
+      window.removeEventListener('mousemove', handleBarDragMove);
+      window.removeEventListener('mouseup', handleDragEnd);
+      window.removeEventListener('mouseup', handleResizeEnd);
+      window.removeEventListener('mouseup', handleBarDragEnd);
+    };
+  }, [isDragging, isResizing, isBarDragging]);
 
   const statuses = ['Open', 'In Progress', 'Resolved', 'Closed'];
 
@@ -414,7 +532,7 @@ const SupportChatWindow = ({ ticket }) => {
                 Status: {ticketStatus}
               </button>
               {isStatusMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-10">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-70">
                   <div className="p-2">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Update Status</label>
                     <select
@@ -483,8 +601,8 @@ const SupportChatWindow = ({ ticket }) => {
           </div>
 
           {incomingCall && !callStatus && (
-            <div className="fixed bottom-4 right-4 z-50">
-              <div className="bg-gray-900 text-white p-4 rounded-xl shadow-2xl w-80 transform transition-all duration-300 hover:shadow-xl">
+            <div className="fixed inset-0 flex items-center justify-center z-70 bg-black bg-opacity-50 backdrop-blur-sm">
+              <div className="bg-gray-900 text-white p-6 rounded-xl shadow-2xl w-96 transform transition-all duration-300 scale-100">
                 <h3 className="text-lg font-bold mb-3">Incoming Call</h3>
                 <p className="text-sm text-gray-400 mb-4">Ticket #{incomingCall.ticketId}</p>
                 <div className="flex space-x-2">
@@ -499,19 +617,43 @@ const SupportChatWindow = ({ ticket }) => {
             </div>
           )}
 
-          {callStatus && (
-            <div className="fixed bottom-4 right-4 z-50">
-              <div className="bg-gray-900 text-white p-4 rounded-xl shadow-2xl w-80 transform transition-all duration-300 hover:shadow-xl">
+          {callStatus && !isMinimized && (
+            <div className="fixed inset-0 flex items-center justify-center z-70 bg-black bg-opacity-50 backdrop-blur-sm">
+              <div className="bg-gray-900 text-white p-6 rounded-xl shadow-2xl w-96 transform transition-all duration-300 scale-100">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-bold">Call with Client</h3>
-                  <span className="text-sm bg-gray-700 px-2 py-1 rounded-full">
-                    {formatDuration(callDuration)}
-                  </span>
+                  <div className="flex space-x-2">
+                    <button onClick={() => setIsMinimized(true)} className="p-1 text-gray-400 hover:text-white">
+                      <ChevronDownIcon className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-sm text-gray-400 mb-4">
-                  {callStatus === 'connected' && `Quality: ${getCallQuality()}`}
+                  {callStatus === 'connected' && `Quality: ${getCallQuality()} | Duration: ${formatDuration(callDuration)}`}
                   {callStatus === 'ended' && 'Call Ended'}
                 </p>
+                {callStatus === 'connected' && isScreenSharing && isVideoMinimized && (
+                  <div className="mb-4">
+                    <div className="relative w-full h-48 bg-black rounded-lg overflow-hidden">
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted={false}
+                        className="w-full h-full object-contain"
+                        onError={(e) => console.error('Support: Modal video error:', e.target.error?.message)}
+                      />
+                      <div className="absolute top-2 right-2 flex space-x-2">
+                        <button
+                          onClick={() => setIsVideoMinimized(false)}
+                          className="p-1 text-gray-400 hover:text-white bg-gray-800 bg-opacity-75 rounded"
+                        >
+                          <ArrowsPointingOutIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {callStatus !== 'ended' && (
                   <div className="flex flex-col space-y-3">
                     <div className="flex space-x-2">
@@ -557,37 +699,67 @@ const SupportChatWindow = ({ ticket }) => {
             </div>
           )}
 
-          {isScreenSharing && (
+          {callStatus && isMinimized && (
+            <div
+              ref={barDragRef}
+              className="fixed bg-gray-700 text-white rounded-lg shadow-lg z-50 flex items-center justify-between px-4 py-2 w-64 transition-all duration-300"
+              style={{ left: `${barPosition.x}px`, top: `${barPosition.y}px` }}
+              onMouseDown={handleBarDragStart}
+            >
+              <span className="text-sm font-medium">Call with Client - {formatDuration(callDuration)}</span>
+              <div className="flex space-x-2">
+                <button onClick={() => setIsMinimized(false)} className="p-1 text-gray-400 hover:text-white">
+                  <ArrowsPointingOutIcon className="w-5 h-5" />
+                </button>
+                <button onClick={handleHangUp} className="p-1 text-gray-400 hover:text-red-400">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {isScreenSharing && !isVideoMinimized && (
             <div
               ref={dragRef}
-              className="fixed bg-gray-800 rounded-lg shadow-lg p-2 z-50"
-              style={{ left: `${videoPosition.x}px`, top: `${videoPosition.y}px`, width: `${videoSize.width}px` }}
+              className="fixed bg-gray-800 rounded-lg shadow-xl z-50 overflow-hidden transition-all duration-300"
+              style={{ left: `${videoPosition.x}px`, top: `${videoPosition.y}px`, width: `${videoSize.width}px`, height: `${videoSize.height + 40}px` }}
             >
               <div
-                className="w-full h-6 bg-gray-700 rounded-t-lg cursor-move flex items-center justify-center text-gray-300 text-sm"
-                onMouseDown={handleMouseDown}
+                className="w-full h-8 bg-gray-700 rounded-t-lg cursor-move flex items-center justify-between px-2 text-gray-200 text-sm font-medium"
+                onMouseDown={handleDragStart}
               >
-                Drag to Move
+                <span>Screen Share - {formatDuration(callDuration)}</span>
+                <div className="flex space-x-2">
+                  <button onClick={() => setIsVideoMinimized(true)} className="p-1 text-gray-400 hover:text-white">
+                    <ChevronDownIcon className="w-4 h-4" />
+                  </button>
+                  <button onClick={toggleFullscreen} className="p-1 text-gray-400 hover:text-white">
+                    {isFullscreen ? <ArrowsPointingInIcon className="w-4 h-4" /> : <ArrowsPointingOutIcon className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={handleHangUp}
+                    className="p-1 text-gray-400 hover:text-red-400"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 muted={false}
-                className="w-full rounded-b-lg"
-                style={{ height: `${videoSize.height}px` }}
+                className="w-full h-[calc(100%-40px)] object-contain bg-black rounded-b-lg"
+                onError={(e) => console.error('Support: Video element error:', e.target.error?.message)}
               />
-              <div className="mt-2 flex items-center space-x-2">
-                <span className="text-sm text-gray-400">Width:</span>
-                <input
-                  type="range"
-                  min="200"
-                  max="800"
-                  value={videoSize.width}
-                  onChange={handleResize}
-                  className="w-full accent-blue-500"
-                />
-              </div>
+              <div
+                className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 cursor-se-resize"
+                onMouseDown={handleResizeStart}
+              />
             </div>
           )}
         </>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { formatDistanceToNow } from 'date-fns';
-import { PhoneIcon, VideoCameraIcon } from '@heroicons/react/24/outline';
+import { PhoneIcon, VideoCameraIcon, ArrowsPointingOutIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
@@ -19,7 +19,9 @@ const ChatWindow = ({ ticket }) => {
   const [volume, setVolume] = useState(1.0);
   const [callDuration, setCallDuration] = useState(0);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [barPosition, setBarPosition] = useState({ x: 20, y: 20 });
   const messagesEndRef = useRef(null);
   const localStreamRef = useRef(null);
   const screenStreamRef = useRef(null);
@@ -27,6 +29,9 @@ const ChatWindow = ({ ticket }) => {
   const audioRef = useRef(null);
   const localVideoRef = useRef(null);
   const timerRef = useRef(null);
+  const barDragRef = useRef(null);
+  const [isBarDragging, setIsBarDragging] = useState(false);
+  const [barDragOffset, setBarDragOffset] = useState({ x: 0, y: 0 });
 
   const token = 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQ0xJRU5UIiwidXNlcklkIjo3LCJzdWIiOiI3IiwiaWF0IjoxNzQ2MjIzMTE1LCJleHAiOjE3NDYzMDk1MTV9.n0m0SioHWbtNfrS8PaYgfRRbfM9YTY4rgZ0FApZopS0';
 
@@ -66,14 +71,14 @@ const ChatWindow = ({ ticket }) => {
         audioRef.current.srcObject = stream;
         audioRef.current.volume = volume;
         audioRef.current.muted = false;
-        audioRef.current.play().catch(err => console.error('Client: Audio play error:', err));
+        audioRef.current.play().catch(err => console.error('Client: Audio play error:', err.message));
       }
     };
 
     pc.onconnectionstatechange = () => {
       console.log('Client: Connection state:', pc.connectionState);
       if (pc.connectionState === 'failed') {
-        console.error('Client: Connection failed');
+        console.error('Client: Connection failed:', pc.connectionState);
         setCallStatus('ended');
         cleanupCall();
       }
@@ -214,6 +219,16 @@ const ChatWindow = ({ ticket }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    if (isScreenSharing && showPreview && localVideoRef.current && screenStreamRef.current && !isMinimized) {
+      console.log('Client: Reassigning screen stream to local video');
+      localVideoRef.current.srcObject = screenStreamRef.current;
+      localVideoRef.current.play()
+        .then(() => console.log('Client: Local video playback started'))
+        .catch(err => console.error('Client: Local video play error:', err.message));
+    }
+  }, [isScreenSharing, showPreview, isMinimized]);
+
   const startTimer = (startTime) => {
     const start = new Date(startTime);
     timerRef.current = setInterval(() => {
@@ -263,7 +278,7 @@ const ChatWindow = ({ ticket }) => {
         body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: 1, toUserId: 2 }),
       });
     } catch (error) {
-      console.error('Client: Error starting WebRTC call:', error);
+      console.error('Client: Error starting WebRTC call:', error.message);
       setCallStatus('ended');
       cleanupCall();
     }
@@ -281,6 +296,7 @@ const ChatWindow = ({ ticket }) => {
       console.log('Client: getDisplayMedia succeeded, stream:', screenStream);
       screenStreamRef.current = screenStream;
       setIsScreenSharing(true);
+      setShowPreview(true);
 
       const videoTrack = screenStream.getVideoTracks()[0];
       console.log('Client: Video track:', videoTrack);
@@ -306,11 +322,12 @@ const ChatWindow = ({ ticket }) => {
         localVideoRef.current.srcObject = screenStream;
         localVideoRef.current.play()
           .then(() => console.log('Client: Local video playback started'))
-          .catch(err => console.error('Client: Local video play error:', err));
+          .catch(err => console.error('Client: Local video play error:', err.message));
       }
     } catch (error) {
-      console.error('Client: Error in startScreenSharing:', error);
+      console.error('Client: Error in startScreenSharing:', error.message);
       setIsScreenSharing(false);
+      setShowPreview(false);
       if (localVideoRef.current) localVideoRef.current.srcObject = null;
     }
   };
@@ -322,7 +339,10 @@ const ChatWindow = ({ ticket }) => {
     }
     setIsScreenSharing(false);
     setShowPreview(false);
-    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+      console.log('Client: Cleared local video srcObject');
+    }
 
     if (!peerConnectionRef.current || !stompClientRef.current || !callIdRef.current) {
       console.error('Client: Cannot renegotiate after stopping screen share: missing requirements');
@@ -346,7 +366,7 @@ const ChatWindow = ({ ticket }) => {
         body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: 1, toUserId: 2 }),
       });
     } catch (error) {
-      console.error('Client: Error stopping screen sharing:', error);
+      console.error('Client: Error stopping screen sharing:', error.message);
     }
   };
 
@@ -368,7 +388,7 @@ const ChatWindow = ({ ticket }) => {
         console.log('Client: Added ICE candidate:', candidate);
       }
     } catch (error) {
-      console.error('Client: Error handling WebRTC signal:', error);
+      console.error('Client: Error handling WebRTC signal:', error.message);
     }
   };
 
@@ -392,6 +412,8 @@ const ChatWindow = ({ ticket }) => {
     setVolume(1.0);
     setIsScreenSharing(false);
     setShowPreview(false);
+    setIsMinimized(false);
+    setBarPosition({ x: 20, y: 20 });
     setTimeout(() => setCallStatus(null), 2000);
   };
 
@@ -439,6 +461,41 @@ const ChatWindow = ({ ticket }) => {
   const getCallQuality = () => {
     return callDuration < 10 ? 'Good' : 'Excellent';
   };
+
+  const handleBarDragStart = (e) => {
+    if (barDragRef.current) {
+      const rect = barDragRef.current.getBoundingClientRect();
+      setBarDragOffset({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+      setIsBarDragging(true);
+    }
+  };
+
+  const handleBarDragMove = (e) => {
+    if (isBarDragging) {
+      setBarPosition({
+        x: Math.max(0, e.clientX - barDragOffset.x),
+        y: Math.max(0, e.clientY - barDragOffset.y),
+      });
+    }
+  };
+
+  const handleBarDragEnd = () => {
+    setIsBarDragging(false);
+  };
+
+  useEffect(() => {
+    if (isBarDragging) {
+      window.addEventListener('mousemove', handleBarDragMove);
+      window.addEventListener('mouseup', handleBarDragEnd);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleBarDragMove);
+      window.removeEventListener('mouseup', handleBarDragEnd);
+    };
+  }, [isBarDragging]);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-light-bg dark:bg-dark-bg">
@@ -497,20 +554,39 @@ const ChatWindow = ({ ticket }) => {
             </div>
           </div>
 
-          {callStatus && (
-            <div className="fixed bottom-4 right-4 z-50">
-              <div className="bg-gray-900 text-white p-4 rounded-xl shadow-2xl w-80 transform transition-all duration-300 hover:shadow-xl">
+          {callStatus && !isMinimized && (
+            <div className="fixed inset-0 flex items-center justify-center z-60 bg-black bg-opacity-50 backdrop-blur-sm">
+              <div className="bg-gray-900 text-white p-6 rounded-xl shadow-2xl w-96 transform transition-all duration-300 scale-100">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-bold">Call with Support</h3>
-                  <span className="text-sm bg-gray-700 px-2 py-1 rounded-full">
-                    {callStatus === 'ringing' ? 'Ringing...' : formatDuration(callDuration)}
-                  </span>
+                  <div className="flex space-x-2">
+                    <button onClick={() => setIsMinimized(true)} className="p-1 text-gray-400 hover:text-white">
+                      <ChevronDownIcon className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-sm text-gray-400 mb-4">
                   {callStatus === 'ringing' && 'Waiting for Support...'}
-                  {callStatus === 'connected' && `Quality: ${getCallQuality()}`}
+                  {callStatus === 'connected' && `Quality: ${getCallQuality()} | Duration: ${formatDuration(callDuration)}`}
                   {callStatus === 'ended' && 'Call Ended'}
                 </p>
+                {callStatus === 'connected' && isScreenSharing && showPreview && (
+                  <div className="mb-4">
+                    <div className="relative w-full h-48 bg-black rounded-lg overflow-hidden">
+                      <video
+                        ref={localVideoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="w-full h-full object-contain"
+                        onError={(e) => console.error('Client: Preview video error:', e.target.error?.message)}
+                      />
+                      <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                        Screen Sharing Active
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {callStatus !== 'ended' && (
                   <div className="flex flex-col space-y-3">
                     <div className="flex space-x-2">
@@ -533,12 +609,20 @@ const ChatWindow = ({ ticket }) => {
                       </button>
                     </div>
                     {isScreenSharing && (
-                      <button
-                        onClick={() => setShowPreview(!showPreview)}
-                        className="py-2 rounded-lg text-sm font-medium bg-blue-500 hover:bg-blue-600 transition"
-                      >
-                        {showPreview ? 'Hide Preview' : 'Show Preview'}
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => setShowPreview(!showPreview)}
+                          className="flex-1 py-2 rounded-lg text-sm font-medium bg-blue-500 hover:bg-blue-600 transition"
+                        >
+                          {showPreview ? 'Hide Preview' : 'Show Preview'}
+                        </button>
+                        <button
+                          onClick={stopScreenSharing}
+                          className="flex-1 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-700 transition"
+                        >
+                          Stop Sharing
+                        </button>
+                      </div>
                     )}
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-400">Volume:</span>
@@ -573,15 +657,24 @@ const ChatWindow = ({ ticket }) => {
             </div>
           )}
 
-          {isScreenSharing && showPreview && (
-            <div className="fixed bottom-20 right-20 z-50 bg-gray-800 rounded-lg shadow-lg p-2">
-              <video ref={localVideoRef} autoPlay playsInline muted className="w-64 h-36 rounded-lg" />
-              <button
-                onClick={stopScreenSharing}
-                className="mt-2 w-full py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition"
-              >
-                Stop Sharing
-              </button>
+          {callStatus && isMinimized && (
+            <div
+              ref={barDragRef}
+              className="fixed bg-gray-700 text-white rounded-lg shadow-lg z-50 flex items-center justify-between px-4 py-2 w-64 transition-all duration-300"
+              style={{ left: `${barPosition.x}px`, top: `${barPosition.y}px` }}
+              onMouseDown={handleBarDragStart}
+            >
+              <span className="text-sm font-medium">Call with Support - {formatDuration(callDuration)}</span>
+              <div className="flex space-x-2">
+                <button onClick={() => setIsMinimized(false)} className="p-1 text-gray-400 hover:text-white">
+                  <ArrowsPointingOutIcon className="w-5 h-5" />
+                </button>
+                <button onClick={handleHangUp} className="p-1 text-gray-400 hover:text-red-400">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
           )}
         </>
