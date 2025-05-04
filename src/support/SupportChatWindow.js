@@ -42,7 +42,18 @@ const SupportChatWindow = ({ ticket }) => {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [barDragOffset, setBarDragOffset] = useState({ x: 0, y: 0 });
 
-  const token = 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiU1VQUE9SVCIsInVzZXJJZCI6Miwic3ViIjoiMiIsImlhdCI6MTc0NjIyNTcwMiwiZXhwIjoxNzQ2MzEyMTAyfQ.Jsc5CAthXQqXMHieLt28t-Is95dW_-j1x50yKvuCutk';
+  // Retrieve token from URL or localStorage
+  const getToken = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromUrl = urlParams.get('token');
+    if (tokenFromUrl) {
+      localStorage.setItem('jwtToken', tokenFromUrl);
+      return tokenFromUrl;
+    }
+    return localStorage.getItem('jwtToken') || null;
+  };
+
+  const token = getToken();
 
   const initializePeerConnection = async () => {
     const pc = new RTCPeerConnection({
@@ -158,6 +169,11 @@ const SupportChatWindow = ({ ticket }) => {
   }, [isScreenSharing, isVideoMinimized, isMinimized]);
 
   useEffect(() => {
+    if (!token) {
+      console.error('Support: No JWT token available');
+      return;
+    }
+
     const socket = new SockJS('https://192.168.0.102:8082/ws', null, { timeout: 30000 });
     const client = new Client({
       webSocketFactory: () => socket,
@@ -165,6 +181,7 @@ const SupportChatWindow = ({ ticket }) => {
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
       debug: (str) => console.log(str),
+      connectHeaders: { Authorization: `Bearer ${token}` },
     });
 
     client.onConnect = (frame) => {
@@ -210,15 +227,16 @@ const SupportChatWindow = ({ ticket }) => {
     return () => {
       if (client) client.deactivate();
     };
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     const fetchMessages = async () => {
-      if (ticket) {
+      if (ticket && token) {
         try {
           const response = await axios.get(`https://192.168.0.102:8082/api/chat/messages/${ticket.id}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
+          console.log('SupportChatWindow: Fetched messages:', response.data);
           setMessages(response.data.map((msg) => ({
             ...msg,
             content: msg.message,
@@ -227,7 +245,7 @@ const SupportChatWindow = ({ ticket }) => {
           setTicketStatus(ticket.status);
           setPendingStatus(ticket.status);
         } catch (error) {
-          console.error('Support: Error fetching messages:', error);
+          console.error('SupportChatWindow: Error fetching messages:', error);
         }
       }
     };
@@ -238,6 +256,7 @@ const SupportChatWindow = ({ ticket }) => {
       if (subscription) subscription.unsubscribe();
       const newSubscription = stompClientRef.current.subscribe(`/topic/ticket/${ticket.id}`, (message) => {
         const receivedMessage = JSON.parse(message.body);
+        console.log('SupportChatWindow: Received WebSocket message:', receivedMessage);
         setMessages((prev) => [...prev, { ...receivedMessage, content: receivedMessage.message, timestamp: receivedMessage.createdAt }]);
       });
       setSubscription(newSubscription);
@@ -246,7 +265,7 @@ const SupportChatWindow = ({ ticket }) => {
     return () => {
       if (subscription) subscription.unsubscribe();
     };
-  }, [ticket]);
+  }, [ticket, token]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -275,6 +294,7 @@ const SupportChatWindow = ({ ticket }) => {
 
   const sendMessage = () => {
     if (newMessage.trim() && stompClientRef.current && ticket) {
+      console.log('SupportChatWindow: Sending message:', newMessage);
       stompClientRef.current.publish({
         destination: `/app/ticket/${ticket.id}/sendMessage`,
         body: JSON.stringify({ ticketId: ticket.id, senderId: 2, senderType: 'SUPPORT', message: newMessage }),
@@ -519,13 +539,21 @@ const SupportChatWindow = ({ ticket }) => {
 
   const statuses = ['Open', 'In Progress', 'Resolved', 'Closed'];
 
+  if (!token) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-red-500">No authentication token provided. Please include a token in the URL.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col h-full bg-white dark:bg-gray-800">
       {ticket ? (
         <>
           <div className="bg-white dark:bg-gray-800 p-4 border-b border-gray-200 dark:border-gray-700 shadow-sm flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-              Ticket #{ticket.id} - {ticket.subject}
+              Ticket #{ticket.id} - {ticket.subject || 'No Subject'}
             </h2>
             <div className="relative">
               <button onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)} className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700">

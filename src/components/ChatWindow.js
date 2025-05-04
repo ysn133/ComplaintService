@@ -33,7 +33,20 @@ const ChatWindow = ({ ticket }) => {
   const [isBarDragging, setIsBarDragging] = useState(false);
   const [barDragOffset, setBarDragOffset] = useState({ x: 0, y: 0 });
 
-  const token = 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiQ0xJRU5UIiwidXNlcklkIjo3LCJzdWIiOiI3IiwiaWF0IjoxNzQ2MjIzMTE1LCJleHAiOjE3NDYzMDk1MTV9.n0m0SioHWbtNfrS8PaYgfRRbfM9YTY4rgZ0FApZopS0';
+  // Retrieve token from URL or localStorage
+  const getToken = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromUrl = urlParams.get('token');
+
+    if (tokenFromUrl) {
+      localStorage.setItem('jwtToken', tokenFromUrl);
+      return tokenFromUrl;
+    }
+
+    return localStorage.getItem('jwtToken') || null;
+  };
+
+  const token = getToken();
 
   const initializePeerConnection = async () => {
     const pc = new RTCPeerConnection({
@@ -103,6 +116,11 @@ const ChatWindow = ({ ticket }) => {
   };
 
   useEffect(() => {
+    if (!token) {
+      console.error('Client: No JWT token available');
+      return;
+    }
+
     const socket = new SockJS('https://192.168.0.102:8082/ws', null, { timeout: 30000 });
     const client = new Client({
       webSocketFactory: () => socket,
@@ -110,6 +128,7 @@ const ChatWindow = ({ ticket }) => {
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
       debug: (str) => console.log(str),
+      connectHeaders: { Authorization: `Bearer ${token}` },
     });
 
     client.onConnect = (frame) => {
@@ -169,7 +188,7 @@ const ChatWindow = ({ ticket }) => {
     return () => {
       if (client) client.deactivate();
     };
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     if (isConnected && stompClientRef.current && pendingCall) {
@@ -183,7 +202,7 @@ const ChatWindow = ({ ticket }) => {
 
   useEffect(() => {
     const fetchMessages = async () => {
-      if (ticket) {
+      if (ticket && token) {
         try {
           const response = await axios.get(`https://192.168.0.102:8082/api/chat/messages/${ticket.id}`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -213,7 +232,7 @@ const ChatWindow = ({ ticket }) => {
     return () => {
       if (subscription) subscription.unsubscribe();
     };
-  }, [ticket]);
+  }, [ticket, token]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -496,6 +515,14 @@ const ChatWindow = ({ ticket }) => {
       window.removeEventListener('mouseup', handleBarDragEnd);
     };
   }, [isBarDragging]);
+
+  if (!token) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-red-500">No authentication token provided. Please include a token in the URL.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col h-full bg-light-bg dark:bg-dark-bg">
