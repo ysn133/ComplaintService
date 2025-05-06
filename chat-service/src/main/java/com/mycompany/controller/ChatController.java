@@ -8,14 +8,22 @@ import com.mycompany.model.TicketMessage;
 import com.mycompany.model.TicketMessage.SenderType;
 import com.mycompany.repository.TicketMessageRepository;
 import com.mycompany.service.ChatService;
+import com.mycompany.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.client.RestTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -39,6 +47,12 @@ public class ChatController {
 
     @Autowired
     private TicketMessageRepository ticketMessageRepository;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     // Mock storage for ticket assignments (ticketId -> supportId)
     private final Map<Long, Long> ticketAssignments = new HashMap<>();
@@ -123,55 +137,83 @@ public class ChatController {
     }
 
     @MessageMapping("/ticket/{ticketId}/sendMessage")
-    public void sendWebSocketMessage(
-            @DestinationVariable Long ticketId,
-            ChatMessageDTO messageDTO) {
-        // Log the received message
+    public void sendWebSocketMessage(@DestinationVariable Long ticketId, ChatMessageDTO messageDTO) {
         logger.info("Received WebSocket message for ticket " + ticketId + ": " + messageDTO.getMessage());
-        logger.info("Received senderType: " + messageDTO.getSenderType());
-
-        // Validate and convert senderType to SenderType enum
-        SenderType senderType;
-        try {
-            senderType = SenderType.valueOf(messageDTO.getSenderType().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            logger.severe("Invalid senderType: " + messageDTO.getSenderType());
-            return; // Skip processing if senderType is invalid
-        }
-
-        // Determine the receiver based on the ticket
-        ReceiverInfo receiverInfo = mockGetReceiverInfo(ticketId, senderType);
-        if (receiverInfo == null) {
-            logger.severe("Could not determine receiver for ticket " + ticketId);
+        
+        // Extract JWT token and validate
+        String token = messageDTO.getJwtToken();
+        if (token == null || !token.startsWith("Bearer ")) {
+            logger.severe("Missing or invalid JWT token in message");
             return;
         }
-
-        // Map DTO to TicketMessage entity
-        TicketMessage message = new TicketMessage();
-        message.setTicketId(ticketId);
-        message.setSenderId(messageDTO.getSenderId());
-        message.setSenderType(senderType);
-        message.setReceiverId(receiverInfo.getReceiverId());
-        message.setReceiverType(receiverInfo.getReceiverType());
-        message.setMessage(messageDTO.getMessage());
-        message.setCreatedAt(LocalDateTime.now());
-        message.setIsRead(false);
-
-        // Save to database using ChatService
-        chatService.saveMessage(
-                message.getTicketId(),
-                message.getSenderId(),
-                message.getSenderType(),
-                message.getReceiverId(),
-                message.getReceiverType(),
-                message.getMessage()
-        );
-
-        // Notify the assigned support member of the new message
-        notifySupportNewMessage(ticketId, message);
-
-        // Broadcast the message to all subscribers of the ticket's topic (for the client)
-        messagingTemplate.convertAndSend("/topic/ticket/" + ticketId, message);
+        token = token.substring(7); // Remove "Bearer " prefix
+        
+        try {
+            // Extract user info from JWT
+            Long userId = JwtUtil.getUserIdFromToken(token);
+            String role = JwtUtil.getRoleFromToken(token);
+            logger.info("Extracted userId=" + userId + ", role=" + role + " from JWT");
+            
+            // Get ticket info from ticket service
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + token);
+            logger.info("Making request to ticket service with headers: " + headers);
+            
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            ResponseEntity<String> response = restTemplate.exchange(
+                "https://192.168.0.102:8093/api/ticket/" + ticketId,
+                HttpMethod.GET,
+                entity,
+                String.class
+            );
+            
+            String ticketResponse = response.getBody();
+            logger.info("Received response from ticket service: " + ticketResponse);
+            
+            JsonNode root = objectMapper.readTree(ticketResponse);
+            Long supportTeamId = root.path("ticket").path("supportTeamId").asLong();
+            Long clientId = root.path("ticket").path("clientId").asLong();
+            
+            // Create message entity
+            TicketMessage message = new TicketMessage();
+            message.setTicketId(ticketId);
+            message.setSenderId(userId);
+            message.setSenderType(SenderType.valueOf(role));
+            
+            // Set receiver based on sender type
+            if (role.equals("CLIENT")) {
+                message.setReceiverId(supportTeamId);
+                message.setReceiverType(SenderType.SUPPORT);
+            } else {
+                message.setReceiverId(clientId);
+                message.setReceiverType(SenderType.CLIENT);
+            }
+            
+            message.setMessage(messageDTO.getMessage());
+            message.setCreatedAt(LocalDateTime.now());
+            message.setIsRead(false);
+            
+            // Save message to database
+            chatService.saveMessage(message);
+            
+            // Send message to ticket topic
+            messagingTemplate.convertAndSend("/topic/ticket/" + ticketId, message);
+            
+            // Send notification to the receiver
+            messagingTemplate.convertAndSendToUser(
+                message.getReceiverId().toString(),
+                "/queue/notifications",
+                Map.of(
+                    "type", "NEW_MESSAGE",
+                    "ticketId", ticketId,
+                    "message", messageDTO.getMessage(),
+                    "senderId", userId,
+                    "senderType", role
+                )
+            );
+        } catch (Exception e) {
+            logger.severe("Error processing message: " + e.getMessage());
+        }
     }
 
     // Notify the assigned support member when a ticket is assigned

@@ -1,0 +1,544 @@
+[[1;34mINFO[m] Scanning for projects...
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m-------------------------< [0;36mcom.mycompany:auth[0;1m >-------------------------[m
+[[1;34mINFO[m] [1mBuilding auth 1[m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-clean-plugin:3.3.2:clean[m [1m(default-clean)[m @ [36mauth[0;1m ---[m
+[[1;34mINFO[m] Deleting /home/yassin/ComplaintService/ComplaintService/auth/target
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mspring-boot-maven-plugin:3.2.4:run[m [1m(default-cli)[0;1m > [0;1mtest-compile[m @ [36mauth[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-dependency-plugin:2.6:copy[m [1m(default)[m @ [36mauth[0;1m ---[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-resources-plugin:3.3.1:resources[m [1m(default-resources)[m @ [36mauth[0;1m ---[m
+[[1;34mINFO[m] Copying 1 resource from src/main/resources to target/classes
+[[1;34mINFO[m] Copying 1 resource from src/main/resources to target/classes
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-compiler-plugin:3.1:compile[m [1m(default-compile)[m @ [36mauth[0;1m ---[m
+[[1;34mINFO[m] Changes detected - recompiling the module!
+[[1;34mINFO[m] Compiling 9 source files to /home/yassin/ComplaintService/ComplaintService/auth/target/classes
+[[1;34mINFO[m] -------------------------------------------------------------
+[[1;33mWARNING[m] COMPILATION WARNING : 
+[[1;34mINFO[m] -------------------------------------------------------------
+[[1;33mWARNING[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/util/JwtUtil.java: /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/util/JwtUtil.java uses or overrides a deprecated API.
+[[1;33mWARNING[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/util/JwtUtil.java: Recompile with -Xlint:deprecation for details.
+[[1;34mINFO[m] 2 warnings 
+[[1;34mINFO[m] -------------------------------------------------------------
+[[1;34mINFO[m] -------------------------------------------------------------
+[[1;31mERROR[m] COMPILATION ERROR : 
+[[1;34mINFO[m] -------------------------------------------------------------
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/service/AuthService.java:[6,52] cannot access org.springframework.beans.factory.annotation.Autowired
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-beans/6.1.5/spring-beans-6.1.5.jar(/org/springframework/beans/factory/annotation/Autowired.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/service/AuthService.java:[7,38] cannot access org.springframework.stereotype.Service
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-context/6.1.5/spring-context-6.1.5.jar(/org/springframework/stereotype/Service.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/service/AuthService.java:[12,2] cannot find symbol
+  symbol: class Service
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/repository/ClientRepository.java:[4,47] cannot access org.springframework.data.jpa.repository.JpaRepository
+  bad class file: /home/yassin/.m2/repository/org/springframework/data/spring-data-jpa/3.2.4/spring-data-jpa-3.2.4.jar(/org/springframework/data/jpa/repository/JpaRepository.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/repository/ClientRepository.java:[8,43] cannot find symbol
+  symbol: class JpaRepository
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[9,32] cannot access org.springframework.http.MediaType
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/http/MediaType.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[10,51] cannot access org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+  bad class file: /home/yassin/.m2/repository/org/springframework/security/spring-security-core/6.2.3/spring-security-core-6.2.3.jar(/org/springframework/security/authentication/UsernamePasswordAuthenticationToken.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[11,49] cannot access org.springframework.security.core.context.SecurityContextHolder
+  bad class file: /home/yassin/.m2/repository/org/springframework/security/spring-security-core/6.2.3/spring-security-core-6.2.3.jar(/org/springframework/security/core/context/SecurityContextHolder.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[12,53] cannot access org.springframework.security.core.userdetails.User
+  bad class file: /home/yassin/.m2/repository/org/springframework/security/spring-security-core/6.2.3/spring-security-core-6.2.3.jar(/org/springframework/security/core/userdetails/User.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[13,53] cannot access org.springframework.security.core.userdetails.UserDetails
+  bad class file: /home/yassin/.m2/repository/org/springframework/security/spring-security-core/6.2.3/spring-security-core-6.2.3.jar(/org/springframework/security/core/userdetails/UserDetails.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[14,38] cannot access org.springframework.stereotype.Component
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-context/6.1.5/spring-context-6.1.5.jar(/org/springframework/stereotype/Component.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[15,38] cannot access org.springframework.web.filter.OncePerRequestFilter
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/web/filter/OncePerRequestFilter.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[22,32] cannot find symbol
+  symbol: class OncePerRequestFilter
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[21,2] cannot find symbol
+  symbol: class Component
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[6,39] cannot access org.springframework.http.server.ServerHttpRequest
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/http/server/ServerHttpRequest.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[7,39] cannot access org.springframework.http.server.ServerHttpResponse
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/http/server/ServerHttpResponse.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[8,39] cannot access org.springframework.http.server.ServletServerHttpRequest
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/http/server/ServletServerHttpRequest.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[10,38] cannot access org.springframework.web.socket.WebSocketHandler
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-websocket/6.1.5/spring-websocket-6.1.5.jar(/org/springframework/web/socket/WebSocketHandler.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[11,45] cannot access org.springframework.web.socket.server.HandshakeInterceptor
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-websocket/6.1.5/spring-websocket-6.1.5.jar(/org/springframework/web/socket/server/HandshakeInterceptor.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[17,49] cannot find symbol
+  symbol: class HandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[16,2] cannot find symbol
+  symbol: class Component
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[20,36] cannot find symbol
+  symbol:   class ServerHttpRequest
+  location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[20,63] cannot find symbol
+  symbol:   class ServerHttpResponse
+  location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[21,36] cannot find symbol
+  symbol:   class WebSocketHandler
+  location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[56,32] cannot find symbol
+  symbol:   class ServerHttpRequest
+  location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[56,59] cannot find symbol
+  symbol:   class ServerHttpResponse
+  location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[57,32] cannot find symbol
+  symbol:   class WebSocketHandler
+  location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[16,32] cannot access org.springframework.http.HttpStatus
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/http/HttpStatus.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[17,32] cannot access org.springframework.http.ResponseEntity
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/http/ResponseEntity.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[23,2] cannot access org.springframework.web.bind.annotation.RestController
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/web/bind/annotation/RestController.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[24,2] cannot access org.springframework.web.bind.annotation.RequestMapping
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/web/bind/annotation/RequestMapping.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[30,12] cannot find symbol
+  symbol:   class ResponseEntity
+  location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[45,12] cannot find symbol
+  symbol:   class ResponseEntity
+  location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[60,12] cannot find symbol
+  symbol:   class ResponseEntity
+  location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[3,32] cannot access org.springframework.boot.SpringApplication
+  bad class file: /home/yassin/.m2/repository/org/springframework/boot/spring-boot/3.2.4/spring-boot-3.2.4.jar(/org/springframework/boot/SpringApplication.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[4,46] cannot access org.springframework.boot.autoconfigure.SpringBootApplication
+  bad class file: /home/yassin/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.2.4/spring-boot-autoconfigure-3.2.4.jar(/org/springframework/boot/autoconfigure/SpringBootApplication.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[5,53] cannot access org.springframework.boot.autoconfigure.domain.EntityScan
+  bad class file: /home/yassin/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.2.4/spring-boot-autoconfigure-3.2.4.jar(/org/springframework/boot/autoconfigure/domain/EntityScan.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[6,46] cannot access org.springframework.context.annotation.ComponentScan
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-context/6.1.5/spring-context-6.1.5.jar(/org/springframework/context/annotation/ComponentScan.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[7,54] cannot access org.springframework.data.jpa.repository.config.EnableJpaRepositories
+  bad class file: /home/yassin/.m2/repository/org/springframework/data/spring-data-jpa/3.2.4/spring-data-jpa-3.2.4.jar(/org/springframework/data/jpa/repository/config/EnableJpaRepositories.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[9,2] cannot find symbol
+  symbol: class SpringBootApplication
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[10,2] cannot find symbol
+  symbol: class EntityScan
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[11,2] cannot find symbol
+  symbol: class EnableJpaRepositories
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[12,2] cannot find symbol
+  symbol: class ComponentScan
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/service/AuthService.java:[14,6] cannot find symbol
+  symbol:   class Autowired
+  location: class com.mycompany.service.AuthService
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[24,1] <any> is not a repeatable annotation type
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[26,6] cannot find symbol
+  symbol:   class Autowired
+  location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[30,55] cannot access org.springframework.web.bind.annotation.RequestBody
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/web/bind/annotation/RequestBody.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[29,6] cannot access org.springframework.web.bind.annotation.PostMapping
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/web/bind/annotation/PostMapping.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[45,63] cannot access org.springframework.web.bind.annotation.PathVariable
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/web/bind/annotation/PathVariable.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[44,6] cannot access org.springframework.web.bind.annotation.GetMapping
+  bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/web/bind/annotation/GetMapping.class)
+    class file has wrong version 61.0, should be 55.0
+    Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[60,62] cannot find symbol
+  symbol:   class RequestBody
+  location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[59,6] cannot find symbol
+  symbol:   class PostMapping
+  location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/service/AuthService.java:[23,33] cannot find symbol
+  symbol:   method save(com.mycompany.entity.Client)
+  location: variable clientRepository of type com.mycompany.repository.ClientRepository
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/service/AuthService.java:[31,32] cannot find symbol
+  symbol:   method findById(java.lang.Long)
+  location: variable clientRepository of type com.mycompany.repository.ClientRepository
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/service/AuthService.java:[41,32] cannot find symbol
+  symbol:   method save(com.mycompany.entity.Client)
+  location: variable clientRepository of type com.mycompany.repository.ClientRepository
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[26,5] method does not override or implement a method from a supertype
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[52,17] cannot find symbol
+  symbol:   class UserDetails
+  location: class com.mycompany.config.JwtFilter
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[52,47] cannot find symbol
+  symbol:   class User
+  location: class com.mycompany.config.JwtFilter
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[55,46] incompatible types: cannot infer type-variable(s) T
+    (argument mismatch; java.lang.Object is not a functional interface)
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[58,17] cannot find symbol
+  symbol:   class UsernamePasswordAuthenticationToken
+  location: class com.mycompany.config.JwtFilter
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[58,69] cannot find symbol
+  symbol:   class UsernamePasswordAuthenticationToken
+  location: class com.mycompany.config.JwtFilter
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[65,17] cannot find symbol
+  symbol:   variable SecurityContextHolder
+  location: class com.mycompany.config.JwtFilter
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[72,21] cannot find symbol
+  symbol:   variable SecurityContextHolder
+  location: class com.mycompany.config.JwtFilter
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[94,33] cannot find symbol
+  symbol:   variable MediaType
+  location: class com.mycompany.config.JwtFilter
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[19,5] method does not override or implement a method from a supertype
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[22,32] cannot find symbol
+  symbol:   class ServletServerHttpRequest
+  location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[23,13] cannot find symbol
+  symbol:   class ServletServerHttpRequest
+  location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[23,56] cannot find symbol
+  symbol:   class ServletServerHttpRequest
+  location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[55,5] method does not override or implement a method from a supertype
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[36,20] cannot find symbol
+  symbol:   variable ResponseEntity
+  location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[40,42] cannot find symbol
+  symbol:   variable HttpStatus
+  location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[40,20] cannot find symbol
+  symbol:   variable ResponseEntity
+  location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[51,20] cannot find symbol
+  symbol:   variable ResponseEntity
+  location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[55,42] cannot find symbol
+  symbol:   variable HttpStatus
+  location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[55,20] cannot find symbol
+  symbol:   variable ResponseEntity
+  location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[66,42] cannot find symbol
+  symbol:   variable HttpStatus
+  location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[66,20] cannot find symbol
+  symbol:   variable ResponseEntity
+  location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[70,42] cannot find symbol
+  symbol:   variable HttpStatus
+  location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[70,20] cannot find symbol
+  symbol:   variable ResponseEntity
+  location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[15,9] cannot find symbol
+  symbol:   variable SpringApplication
+  location: class com.mycompany.authApp
+[[1;34mINFO[m] 80 errors 
+[[1;34mINFO[m] -------------------------------------------------------------
+[[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[[1;34mINFO[m] [1;31mBUILD FAILURE[m
+[[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[[1;34mINFO[m] Total time:  1.377 s
+[[1;34mINFO[m] Finished at: 2025-04-19T21:42:31+01:00
+[[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[[1;31mERROR[m] Failed to execute goal [32morg.apache.maven.plugins:maven-compiler-plugin:3.1:compile[m [1m(default-compile)[m on project [36mauth[m: [1;31mCompilation failure[m: Compilation failure: 
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/service/AuthService.java:[6,52] cannot access org.springframework.beans.factory.annotation.Autowired
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-beans/6.1.5/spring-beans-6.1.5.jar(/org/springframework/beans/factory/annotation/Autowired.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/service/AuthService.java:[7,38] cannot access org.springframework.stereotype.Service
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-context/6.1.5/spring-context-6.1.5.jar(/org/springframework/stereotype/Service.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/service/AuthService.java:[12,2] cannot find symbol
+[[1;31mERROR[m]   symbol: class Service
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/repository/ClientRepository.java:[4,47] cannot access org.springframework.data.jpa.repository.JpaRepository
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/data/spring-data-jpa/3.2.4/spring-data-jpa-3.2.4.jar(/org/springframework/data/jpa/repository/JpaRepository.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/repository/ClientRepository.java:[8,43] cannot find symbol
+[[1;31mERROR[m]   symbol: class JpaRepository
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[9,32] cannot access org.springframework.http.MediaType
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/http/MediaType.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[10,51] cannot access org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/security/spring-security-core/6.2.3/spring-security-core-6.2.3.jar(/org/springframework/security/authentication/UsernamePasswordAuthenticationToken.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[11,49] cannot access org.springframework.security.core.context.SecurityContextHolder
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/security/spring-security-core/6.2.3/spring-security-core-6.2.3.jar(/org/springframework/security/core/context/SecurityContextHolder.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[12,53] cannot access org.springframework.security.core.userdetails.User
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/security/spring-security-core/6.2.3/spring-security-core-6.2.3.jar(/org/springframework/security/core/userdetails/User.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[13,53] cannot access org.springframework.security.core.userdetails.UserDetails
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/security/spring-security-core/6.2.3/spring-security-core-6.2.3.jar(/org/springframework/security/core/userdetails/UserDetails.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[14,38] cannot access org.springframework.stereotype.Component
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-context/6.1.5/spring-context-6.1.5.jar(/org/springframework/stereotype/Component.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[15,38] cannot access org.springframework.web.filter.OncePerRequestFilter
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/web/filter/OncePerRequestFilter.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[22,32] cannot find symbol
+[[1;31mERROR[m]   symbol: class OncePerRequestFilter
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[21,2] cannot find symbol
+[[1;31mERROR[m]   symbol: class Component
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[6,39] cannot access org.springframework.http.server.ServerHttpRequest
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/http/server/ServerHttpRequest.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[7,39] cannot access org.springframework.http.server.ServerHttpResponse
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/http/server/ServerHttpResponse.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[8,39] cannot access org.springframework.http.server.ServletServerHttpRequest
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/http/server/ServletServerHttpRequest.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[10,38] cannot access org.springframework.web.socket.WebSocketHandler
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-websocket/6.1.5/spring-websocket-6.1.5.jar(/org/springframework/web/socket/WebSocketHandler.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[11,45] cannot access org.springframework.web.socket.server.HandshakeInterceptor
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-websocket/6.1.5/spring-websocket-6.1.5.jar(/org/springframework/web/socket/server/HandshakeInterceptor.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[17,49] cannot find symbol
+[[1;31mERROR[m]   symbol: class HandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[16,2] cannot find symbol
+[[1;31mERROR[m]   symbol: class Component
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[20,36] cannot find symbol
+[[1;31mERROR[m]   symbol:   class ServerHttpRequest
+[[1;31mERROR[m]   location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[20,63] cannot find symbol
+[[1;31mERROR[m]   symbol:   class ServerHttpResponse
+[[1;31mERROR[m]   location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[21,36] cannot find symbol
+[[1;31mERROR[m]   symbol:   class WebSocketHandler
+[[1;31mERROR[m]   location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[56,32] cannot find symbol
+[[1;31mERROR[m]   symbol:   class ServerHttpRequest
+[[1;31mERROR[m]   location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[56,59] cannot find symbol
+[[1;31mERROR[m]   symbol:   class ServerHttpResponse
+[[1;31mERROR[m]   location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[57,32] cannot find symbol
+[[1;31mERROR[m]   symbol:   class WebSocketHandler
+[[1;31mERROR[m]   location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[16,32] cannot access org.springframework.http.HttpStatus
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/http/HttpStatus.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[17,32] cannot access org.springframework.http.ResponseEntity
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/http/ResponseEntity.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[23,2] cannot access org.springframework.web.bind.annotation.RestController
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/web/bind/annotation/RestController.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[24,2] cannot access org.springframework.web.bind.annotation.RequestMapping
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/web/bind/annotation/RequestMapping.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[30,12] cannot find symbol
+[[1;31mERROR[m]   symbol:   class ResponseEntity
+[[1;31mERROR[m]   location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[45,12] cannot find symbol
+[[1;31mERROR[m]   symbol:   class ResponseEntity
+[[1;31mERROR[m]   location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[60,12] cannot find symbol
+[[1;31mERROR[m]   symbol:   class ResponseEntity
+[[1;31mERROR[m]   location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[3,32] cannot access org.springframework.boot.SpringApplication
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/boot/spring-boot/3.2.4/spring-boot-3.2.4.jar(/org/springframework/boot/SpringApplication.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[4,46] cannot access org.springframework.boot.autoconfigure.SpringBootApplication
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.2.4/spring-boot-autoconfigure-3.2.4.jar(/org/springframework/boot/autoconfigure/SpringBootApplication.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[5,53] cannot access org.springframework.boot.autoconfigure.domain.EntityScan
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.2.4/spring-boot-autoconfigure-3.2.4.jar(/org/springframework/boot/autoconfigure/domain/EntityScan.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[6,46] cannot access org.springframework.context.annotation.ComponentScan
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-context/6.1.5/spring-context-6.1.5.jar(/org/springframework/context/annotation/ComponentScan.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[7,54] cannot access org.springframework.data.jpa.repository.config.EnableJpaRepositories
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/data/spring-data-jpa/3.2.4/spring-data-jpa-3.2.4.jar(/org/springframework/data/jpa/repository/config/EnableJpaRepositories.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[9,2] cannot find symbol
+[[1;31mERROR[m]   symbol: class SpringBootApplication
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[10,2] cannot find symbol
+[[1;31mERROR[m]   symbol: class EntityScan
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[11,2] cannot find symbol
+[[1;31mERROR[m]   symbol: class EnableJpaRepositories
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[12,2] cannot find symbol
+[[1;31mERROR[m]   symbol: class ComponentScan
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/service/AuthService.java:[14,6] cannot find symbol
+[[1;31mERROR[m]   symbol:   class Autowired
+[[1;31mERROR[m]   location: class com.mycompany.service.AuthService
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[24,1] <any> is not a repeatable annotation type
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[26,6] cannot find symbol
+[[1;31mERROR[m]   symbol:   class Autowired
+[[1;31mERROR[m]   location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[30,55] cannot access org.springframework.web.bind.annotation.RequestBody
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/web/bind/annotation/RequestBody.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[29,6] cannot access org.springframework.web.bind.annotation.PostMapping
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/web/bind/annotation/PostMapping.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[45,63] cannot access org.springframework.web.bind.annotation.PathVariable
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/web/bind/annotation/PathVariable.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[44,6] cannot access org.springframework.web.bind.annotation.GetMapping
+[[1;31mERROR[m]   bad class file: /home/yassin/.m2/repository/org/springframework/spring-web/6.1.5/spring-web-6.1.5.jar(/org/springframework/web/bind/annotation/GetMapping.class)
+[[1;31mERROR[m]     class file has wrong version 61.0, should be 55.0
+[[1;31mERROR[m]     Please remove or make sure it appears in the correct subdirectory of the classpath.
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[60,62] cannot find symbol
+[[1;31mERROR[m]   symbol:   class RequestBody
+[[1;31mERROR[m]   location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[59,6] cannot find symbol
+[[1;31mERROR[m]   symbol:   class PostMapping
+[[1;31mERROR[m]   location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/service/AuthService.java:[23,33] cannot find symbol
+[[1;31mERROR[m]   symbol:   method save(com.mycompany.entity.Client)
+[[1;31mERROR[m]   location: variable clientRepository of type com.mycompany.repository.ClientRepository
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/service/AuthService.java:[31,32] cannot find symbol
+[[1;31mERROR[m]   symbol:   method findById(java.lang.Long)
+[[1;31mERROR[m]   location: variable clientRepository of type com.mycompany.repository.ClientRepository
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/service/AuthService.java:[41,32] cannot find symbol
+[[1;31mERROR[m]   symbol:   method save(com.mycompany.entity.Client)
+[[1;31mERROR[m]   location: variable clientRepository of type com.mycompany.repository.ClientRepository
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[26,5] method does not override or implement a method from a supertype
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[52,17] cannot find symbol
+[[1;31mERROR[m]   symbol:   class UserDetails
+[[1;31mERROR[m]   location: class com.mycompany.config.JwtFilter
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[52,47] cannot find symbol
+[[1;31mERROR[m]   symbol:   class User
+[[1;31mERROR[m]   location: class com.mycompany.config.JwtFilter
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[55,46] incompatible types: cannot infer type-variable(s) T
+[[1;31mERROR[m]     (argument mismatch; java.lang.Object is not a functional interface)
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[58,17] cannot find symbol
+[[1;31mERROR[m]   symbol:   class UsernamePasswordAuthenticationToken
+[[1;31mERROR[m]   location: class com.mycompany.config.JwtFilter
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[58,69] cannot find symbol
+[[1;31mERROR[m]   symbol:   class UsernamePasswordAuthenticationToken
+[[1;31mERROR[m]   location: class com.mycompany.config.JwtFilter
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[65,17] cannot find symbol
+[[1;31mERROR[m]   symbol:   variable SecurityContextHolder
+[[1;31mERROR[m]   location: class com.mycompany.config.JwtFilter
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[72,21] cannot find symbol
+[[1;31mERROR[m]   symbol:   variable SecurityContextHolder
+[[1;31mERROR[m]   location: class com.mycompany.config.JwtFilter
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtFilter.java:[94,33] cannot find symbol
+[[1;31mERROR[m]   symbol:   variable MediaType
+[[1;31mERROR[m]   location: class com.mycompany.config.JwtFilter
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[19,5] method does not override or implement a method from a supertype
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[22,32] cannot find symbol
+[[1;31mERROR[m]   symbol:   class ServletServerHttpRequest
+[[1;31mERROR[m]   location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[23,13] cannot find symbol
+[[1;31mERROR[m]   symbol:   class ServletServerHttpRequest
+[[1;31mERROR[m]   location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[23,56] cannot find symbol
+[[1;31mERROR[m]   symbol:   class ServletServerHttpRequest
+[[1;31mERROR[m]   location: class com.mycompany.config.JwtHandshakeInterceptor
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/config/JwtHandshakeInterceptor.java:[55,5] method does not override or implement a method from a supertype
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[36,20] cannot find symbol
+[[1;31mERROR[m]   symbol:   variable ResponseEntity
+[[1;31mERROR[m]   location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[40,42] cannot find symbol
+[[1;31mERROR[m]   symbol:   variable HttpStatus
+[[1;31mERROR[m]   location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[40,20] cannot find symbol
+[[1;31mERROR[m]   symbol:   variable ResponseEntity
+[[1;31mERROR[m]   location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[51,20] cannot find symbol
+[[1;31mERROR[m]   symbol:   variable ResponseEntity
+[[1;31mERROR[m]   location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[55,42] cannot find symbol
+[[1;31mERROR[m]   symbol:   variable HttpStatus
+[[1;31mERROR[m]   location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[55,20] cannot find symbol
+[[1;31mERROR[m]   symbol:   variable ResponseEntity
+[[1;31mERROR[m]   location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[66,42] cannot find symbol
+[[1;31mERROR[m]   symbol:   variable HttpStatus
+[[1;31mERROR[m]   location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[66,20] cannot find symbol
+[[1;31mERROR[m]   symbol:   variable ResponseEntity
+[[1;31mERROR[m]   location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[70,42] cannot find symbol
+[[1;31mERROR[m]   symbol:   variable HttpStatus
+[[1;31mERROR[m]   location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/controller/AuthController.java:[70,20] cannot find symbol
+[[1;31mERROR[m]   symbol:   variable ResponseEntity
+[[1;31mERROR[m]   location: class com.mycompany.controller.AuthController
+[[1;31mERROR[m] /home/yassin/ComplaintService/ComplaintService/auth/src/main/java/com/mycompany/authApp.java:[15,9] cannot find symbol
+[[1;31mERROR[m]   symbol:   variable SpringApplication
+[[1;31mERROR[m]   location: class com.mycompany.authApp
+[[1;31mERROR[m] -> [1m[Help 1][m
+[[1;31mERROR[m] 
+[[1;31mERROR[m] To see the full stack trace of the errors, re-run Maven with the [1m-e[m switch.
+[[1;31mERROR[m] Re-run Maven using the [1m-X[m switch to enable full debug logging.
+[[1;31mERROR[m] 
+[[1;31mERROR[m] For more information about the errors and possible solutions, please read the following articles:
+[[1;31mERROR[m] [1m[Help 1][m http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

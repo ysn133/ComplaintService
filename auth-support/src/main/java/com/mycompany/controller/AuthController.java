@@ -2,10 +2,12 @@ package com.mycompany.controller;
 
 import com.mycompany.entity.Support;
 import com.mycompany.service.AuthService;
+import com.mycompany.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,12 +16,13 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.List; // Add this import
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -30,6 +33,9 @@ public class AuthController {
 
     @Autowired
     private AuthService authService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @PostMapping("/auth/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody @Valid LoginRequest request) {
@@ -177,6 +183,86 @@ public class AuthController {
         }
     }
 
+    @GetMapping("/support/available/{categoryId}")
+    public ResponseEntity<Map<String, Object>> getAvailableSupport(@PathVariable Long categoryId, @RequestHeader("Authorization") String authorizationHeader) {
+        logger.debug("Processing getAvailableSupport request for category ID: {}", categoryId);
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || authentication.getPrincipal() == null) {
+                response.put("status", "ERROR");
+                response.put("message", "Invalid authentication details");
+                logger.warn("Invalid authentication details for getAvailableSupport");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+
+            String jwt = authorizationHeader.startsWith("Bearer ") ? authorizationHeader.substring(7) : authorizationHeader;
+            String role = jwtUtil.getRoleFromToken(jwt);
+            if (!"ADMIN".equals(role)) {
+                response.put("status", "ERROR");
+                response.put("message", "Only admins can access this endpoint");
+                logger.warn("Non-admin role {} attempted to access getAvailableSupport", role);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+            }
+
+            Long supportTeamId = authService.getAvailableSupportId(categoryId);
+            response.put("status", "SUCCESS");
+            response.put("supportTeamId", supportTeamId);
+            logger.info("Retrieved support ID: {} for category ID: {}", supportTeamId, categoryId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            response.put("status", "ERROR");
+            response.put("message", e.getMessage());
+            logger.warn("Failed to retrieve support: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        } catch (Exception e) {
+            response.put("status", "ERROR");
+            response.put("message", "Invalid JWT token");
+            logger.warn("Invalid JWT token for getAvailableSupport: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+    }
+
+    @PostMapping("/support/activeTickets")
+    public ResponseEntity<Map<String, Object>> updateActiveTickets(@RequestBody @Valid ActiveTicketsRequest request, @RequestHeader("Authorization") String authorizationHeader) {
+        logger.debug("Processing updateActiveTickets request for supportTeamId: {}", request.getSupportTeamId());
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || authentication.getPrincipal() == null) {
+                response.put("status", "ERROR");
+                response.put("message", "Invalid authentication details");
+                logger.warn("Invalid authentication details for updateActiveTickets");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+
+            String jwt = authorizationHeader.startsWith("Bearer ") ? authorizationHeader.substring(7) : authorizationHeader;
+            String role = jwtUtil.getRoleFromToken(jwt);
+            if (!"ADMIN".equals(role)) {
+                response.put("status", "ERROR");
+                response.put("message", "Only admins can access this endpoint");
+                logger.warn("Non-admin role {} attempted to access updateActiveTickets", role);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+            }
+
+            authService.updateSupportWorkload(request.getSupportTeamId(), request.getActiveTickets());
+            response.put("status", "SUCCESS");
+            response.put("message", "Workload updated successfully for support team ID: " + request.getSupportTeamId());
+            logger.info("Updated workload for support team ID: {} with active tickets: {}", request.getSupportTeamId(), request.getActiveTickets());
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            response.put("status", "ERROR");
+            response.put("message", e.getMessage());
+            logger.warn("Failed to update workload: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        } catch (Exception e) {
+            response.put("status", "ERROR");
+            response.put("message", "Invalid JWT token");
+            logger.warn("Invalid JWT token for updateActiveTickets: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         logger.warn("Validation error: {}", ex.getMessage());
@@ -203,5 +289,18 @@ public class AuthController {
         public void setEmail(String email) { this.email = email; }
         public String getPassword() { return password; }
         public void setPassword(String password) { this.password = password; }
+    }
+
+    public static class ActiveTicketsRequest {
+        @NotNull(message = "Support team ID is required")
+        private Long supportTeamId;
+
+        @NotNull(message = "Active tickets count is required")
+        private Long activeTickets;
+
+        public Long getSupportTeamId() { return supportTeamId; }
+        public void setSupportTeamId(Long supportTeamId) { this.supportTeamId = supportTeamId; }
+        public Long getActiveTickets() { return activeTickets; }
+        public void setActiveTickets(Long activeTickets) { this.activeTickets = activeTickets; }
     }
 }

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<faces-config xmlns="http://xmlns.java.net/xml/ns/javaee"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://xmlns.java.net/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-facesconfig_2_3.xsd"
+              version="2.3">
+    
+    
+    <navigation-rule>
+        <from-view-id>/createTicket.xhtml</from-view-id>
+        <navigation-case>
+            <from-outcome>success</from-outcome>
+            <to-view-id>/success.xhtml</to-view-id>
+        </navigation-case>
+    </navigation-rule>
+    
+    
+</faces-config>

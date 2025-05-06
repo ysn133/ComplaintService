@@ -6,9 +6,9 @@ ls -l target/jsflogin.war
 
 
 /opt/tomcat/bin/shutdown.sh
-rm -rf /opt/tomcat/webapps/jsflogin*
-rm -rf /opt/tomcat/work/Catalina/localhost/jsflogin/
-rm -rf /opt/tomcat/logs/*
+sudo rm -rf /opt/tomcat/webapps/jsflogin*
+sudo rm -rf /opt/tomcat/work/Catalina/localhost/jsflogin/
+sudo rm -rf /opt/tomcat/logs/*
 
 
 cp /home/yassin/ComplaintService/ComplaintService/jsflogin/target/jsflogin.war /opt/tomcat/webapps/

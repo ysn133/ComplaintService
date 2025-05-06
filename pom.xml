@@ -90,6 +90,8 @@
     <module>auth</module>
     <module>auth-support</module>
     <module>admin-auth</module>
+    <module>Support</module>
+    <module>ticket-service</module>
   </modules>
                           
 

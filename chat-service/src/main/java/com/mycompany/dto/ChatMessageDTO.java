@@ -6,6 +6,7 @@ public class ChatMessageDTO {
     private String senderType; // String to receive the senderType from the frontend
     private String message;
     private String createdAt;
+    private String jwtToken; // New field to hold the JWT token
 
     // Getters and Setters
     public Long getTicketId() {
@@ -46,5 +47,13 @@ public class ChatMessageDTO {
 
     public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getJwtToken() {
+        return jwtToken;
+    }
+
+    public void setJwtToken(String jwtToken) {
+        this.jwtToken = jwtToken;
     }
 }

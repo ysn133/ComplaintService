@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.List; // Add this import
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -38,7 +38,7 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("Support user not found"));
     }
 
-    public List<Support> findAllSupports() { // New method for retrieving all supports
+    public List<Support> findAllSupports() {
         return supportRepository.findAll();
     }
 
@@ -54,7 +54,6 @@ public class AuthService {
         Support existingSupport = supportRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Support user not found"));
 
-        // Only validate email if it's different
         if (!existingSupport.getEmail().equals(updatedSupport.getEmail())) {
             if (supportRepository.existsByEmail(updatedSupport.getEmail())) {
                 throw new IllegalArgumentException("Email already exists");
@@ -78,5 +77,21 @@ public class AuthService {
             throw new IllegalArgumentException("Support user not found");
         }
         supportRepository.deleteById(id);
+    }
+
+    public Long getAvailableSupportId(Long categoryId) {
+        List<Support> supports = supportRepository.findByCategoryIdAndActiveTrueOrderByWorkloadAsc(categoryId);
+        if (supports.isEmpty()) {
+            throw new IllegalArgumentException("No available support users for category ID: " + categoryId);
+        }
+        Support selectedSupport = supports.get(0);
+        return selectedSupport.getId();
+    }
+
+    public void updateSupportWorkload(Long supportTeamId, Long activeTickets) {
+        Support support = supportRepository.findById(supportTeamId)
+                .orElseThrow(() -> new IllegalArgumentException("Support team not found with ID: " + supportTeamId));
+        support.setWorkload(activeTickets.intValue());
+        supportRepository.save(support);
     }
 }
