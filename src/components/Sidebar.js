@@ -100,6 +100,11 @@ const Sidebar = ({ selectedTicketId, onSelectTicket }) => {
     fetchTickets();
   }, [token]);
 
+  const handleTicketSelect = (ticket) => {
+    console.log('Selected ticket:', ticket);
+    onSelectTicket(ticket);
+  };
+
   return (
     <div className="w-64 bg-light-secondaryBg dark:bg-dark-secondaryBg h-full p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400">
       <h2 className="text-lg font-semibold mb-4 text-light-text dark:text-dark-text">Tickets</h2>
@@ -115,7 +120,7 @@ const Sidebar = ({ selectedTicketId, onSelectTicket }) => {
             key={ticket.id}
             ticket={ticket}
             isSelected={selectedTicketId === ticket.id}
-            onSelect={() => onSelectTicket(ticket.id)}
+            onSelect={() => handleTicketSelect(ticket)}
           />
         ))
       )}

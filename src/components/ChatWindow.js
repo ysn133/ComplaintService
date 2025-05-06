@@ -5,6 +5,7 @@ import { PhoneIcon, VideoCameraIcon, ArrowsPointingOutIcon, ChevronDownIcon } fr
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
+
 const ChatWindow = ({ ticket }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -47,6 +48,7 @@ const ChatWindow = ({ ticket }) => {
   };
 
   const token = getToken();
+
 
   const initializePeerConnection = async () => {
     const pc = new RTCPeerConnection({
@@ -201,36 +203,58 @@ const ChatWindow = ({ ticket }) => {
   }, [isConnected, pendingCall]);
 
   useEffect(() => {
+    console.log('Ticket changed:', ticket);
     const fetchMessages = async () => {
-      if (ticket && token) {
-        try {
-          const response = await axios.get(`https://192.168.0.102:8082/api/chat/messages/${ticket.id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setMessages(response.data.map((msg) => ({
-            ...msg,
-            content: msg.message,
-            timestamp: msg.createdAt,
-          })) || []);
-        } catch (error) {
-          console.error('Client: Error fetching messages:', error);
-        }
+      if (!ticket || !token) {
+        console.log('No ticket or token available');
+        return;
+      }
+      
+      console.log('Fetching messages for ticket:', ticket.id);
+      try {
+        const response = await axios.get(`https://192.168.0.102:8082/api/chat/messages/${ticket.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('Received messages:', response.data);
+        setMessages(response.data.map((msg) => ({
+          ...msg,
+          content: msg.message,
+          timestamp: msg.createdAt,
+        })) || []);
+      } catch (error) {
+        console.error('Error fetching messages:', error);
       }
     };
 
+    // Clean up previous subscriptions
+    if (subscription) {
+      subscription.unsubscribe();
+      setSubscription(null);
+    }
+
+    // Reset messages when ticket changes
+    setMessages([]);
+    
+    // Fetch messages for new ticket
     fetchMessages();
 
+    // Subscribe to new ticket topic if connected
     if (stompClientRef.current && ticket) {
-      if (subscription) subscription.unsubscribe();
       const newSubscription = stompClientRef.current.subscribe(`/topic/ticket/${ticket.id}`, (message) => {
         const receivedMessage = JSON.parse(message.body);
-        setMessages((prev) => [...prev, { ...receivedMessage, content: receivedMessage.message, timestamp: receivedMessage.createdAt }]);
+        setMessages((prev) => [...prev, { 
+          ...receivedMessage, 
+          content: receivedMessage.message, 
+          timestamp: receivedMessage.createdAt 
+        }]);
       });
       setSubscription(newSubscription);
     }
 
     return () => {
-      if (subscription) subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, [ticket, token]);
 
@@ -271,9 +295,15 @@ const ChatWindow = ({ ticket }) => {
 
   const sendMessage = () => {
     if (newMessage.trim() && stompClientRef.current && ticket) {
+   
+      
       stompClientRef.current.publish({
         destination: `/app/ticket/${ticket.id}/sendMessage`,
-        body: JSON.stringify({ ticketId: ticket.id, senderId: 1, senderType: 'CLIENT', message: newMessage }),
+        body: JSON.stringify({ 
+          ticketId: ticket.id, 
+          message: newMessage,
+          jwtToken: `Bearer ${token}`
+        }),
       });
       setNewMessage('');
     }

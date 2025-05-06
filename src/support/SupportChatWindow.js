@@ -294,10 +294,13 @@ const SupportChatWindow = ({ ticket }) => {
 
   const sendMessage = () => {
     if (newMessage.trim() && stompClientRef.current && ticket) {
-      console.log('SupportChatWindow: Sending message:', newMessage);
       stompClientRef.current.publish({
         destination: `/app/ticket/${ticket.id}/sendMessage`,
-        body: JSON.stringify({ ticketId: ticket.id, senderId: 2, senderType: 'SUPPORT', message: newMessage }),
+        body: JSON.stringify({ 
+          ticketId: ticket.id, 
+          message: newMessage,
+          jwtToken: `Bearer ${token}`
+        }),
       });
       setNewMessage('');
     }
