@@ -66,7 +66,7 @@ const ChatWindow = ({ ticket }) => {
             type: 'ice-candidate',
             data: JSON.stringify(event.candidate),
             fromUserId: 1,
-            toUserId: 2,
+            toUserId: 1,
           }),
         });
       }
@@ -324,7 +324,7 @@ const ChatWindow = ({ ticket }) => {
 
       stompClientRef.current.publish({
         destination: `/app/call/${callIdRef.current}/signal`,
-        body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: 1, toUserId: 2 }),
+        body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: 1, toUserId: 1 }),
       });
     } catch (error) {
       console.error('Client: Error starting WebRTC call:', error.message);
@@ -363,7 +363,7 @@ const ChatWindow = ({ ticket }) => {
 
       stompClientRef.current.publish({
         destination: `/app/call/${callIdRef.current}/signal`,
-        body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: 1, toUserId: 2 }),
+        body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: 1, toUserId: 1 }),
       });
 
       if (localVideoRef.current) {
@@ -412,7 +412,7 @@ const ChatWindow = ({ ticket }) => {
 
       stompClientRef.current.publish({
         destination: `/app/call/${callIdRef.current}/signal`,
-        body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: 1, toUserId: 2 }),
+        body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: 1, toUserId: 1 }),
       });
     } catch (error) {
       console.error('Client: Error stopping screen sharing:', error.message);
@@ -481,7 +481,13 @@ const ChatWindow = ({ ticket }) => {
 
     stompClientRef.current.publish({
       destination: `/app/ticket/${ticket.id}/initiateCall`,
-      body: JSON.stringify({ ticketId: ticket.id, callerId: 1, callerType: 'CLIENT', callId: tempCallId }),
+      body: JSON.stringify({ 
+        ticketId: ticket.id, 
+        callerId: 1, 
+        callerType: 'CLIENT', 
+        callId: tempCallId,
+        jwtToken: `Bearer ${token}`
+      }),
     });
   };
 
