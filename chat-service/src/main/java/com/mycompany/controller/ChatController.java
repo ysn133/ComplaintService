@@ -311,17 +311,52 @@ public class ChatController {
             return;
         }
 
-        Long supportId = 2L; // Hardcoded for ticketId=1
-        String callId = UUID.randomUUID().toString();
-        callNotification.setCallId(callId);
-        activeCalls.put(callId, ticketId);
+        try {
+            // Extract JWT token and validate
+            String token = callNotification.getJwtToken();
+            if (token == null || !token.startsWith("Bearer ")) {
+                logger.severe("Missing or invalid JWT token in call notification");
+                return;
+            }
+            token = token.substring(7); // Remove "Bearer " prefix
 
-        messagingTemplate.convertAndSendToUser(
-                supportId.toString(),
-                "/call/incoming",
-                callNotification
-        );
-        logger.info("Notified supportId " + supportId + " of incoming call: callId=" + callId);
+            // Get ticket info from ticket service
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + token);
+            logger.info("Making request to ticket service with headers: " + headers);
+            
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            ResponseEntity<String> response = restTemplate.exchange(
+                "https://192.168.0.102:8093/api/ticket/" + ticketId,
+                HttpMethod.GET,
+                entity,
+                String.class
+            );
+            
+            String ticketResponse = response.getBody();
+            logger.info("Received response from ticket service: " + ticketResponse);
+            
+            JsonNode root = objectMapper.readTree(ticketResponse);
+            Long supportId = root.path("ticket").path("supportTeamId").asLong();
+            
+            if (supportId == null || supportId == 0) {
+                logger.severe("No support agent assigned to ticket " + ticketId);
+                return;
+            }
+
+            String callId = UUID.randomUUID().toString();
+            callNotification.setCallId(callId);
+            activeCalls.put(callId, ticketId);
+
+            messagingTemplate.convertAndSendToUser(
+                    supportId.toString(),
+                    "/call/incoming",
+                    callNotification
+            );
+            logger.info("Notified supportId " + supportId + " of incoming call: callId=" + callId);
+        } catch (Exception e) {
+            logger.severe("Error processing call initiation: " + e.getMessage());
+        }
     }
 
 @MessageMapping("/call/{callId}/respond")
