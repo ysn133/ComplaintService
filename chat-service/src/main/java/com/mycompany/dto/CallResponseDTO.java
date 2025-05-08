@@ -6,9 +6,11 @@ public class CallResponseDTO implements Serializable {
     private String callId;
     private boolean accepted;
     private String timestamp;
-    private String jwtToken; // Added to hold the JWT token
+    private String jwtToken;
 
-    // Getters and Setters
+    public CallResponseDTO() {
+    }
+
     public String getCallId() {
         return callId;
     }

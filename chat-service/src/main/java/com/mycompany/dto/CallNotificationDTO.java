@@ -5,6 +5,7 @@ public class CallNotificationDTO {
     private Long callerId;
     private String callerType;
     private String callId; // Unique call identifier
+    private String jwtToken; // JWT token for authentication
 
     // Getters and setters
     public Long getTicketId() {
@@ -37,5 +38,13 @@ public class CallNotificationDTO {
 
     public void setCallId(String callId) {
         this.callId = callId;
+    }
+
+    public String getJwtToken() {
+        return jwtToken;
+    }
+
+    public void setJwtToken(String jwtToken) {
+        this.jwtToken = jwtToken;
     }
 }
