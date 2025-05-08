@@ -55,6 +55,26 @@ const SupportChatWindow = ({ ticket }) => {
 
   const token = getToken();
 
+  // Extract support ID from JWT token
+  const getSupportIdFromToken = () => {
+    if (!token) {
+      console.error('Support: No JWT token available');
+      return null;
+    }
+    try {
+      const tokenParts = token.split('.');
+      if (tokenParts.length !== 3) {
+        console.error('Support: Invalid JWT token format');
+        return null;
+      }
+      const payload = JSON.parse(atob(tokenParts[1]));
+      return payload.userId;
+    } catch (error) {
+      console.error('Support: Error parsing JWT token:', error);
+      return null;
+    }
+  };
+
   const initializePeerConnection = async () => {
     const pc = new RTCPeerConnection({
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
@@ -70,8 +90,8 @@ const SupportChatWindow = ({ ticket }) => {
             callId: callIdRef.current,
             type: 'ice-candidate',
             data: JSON.stringify(event.candidate),
-            fromUserId: 2,
-            toUserId: 1,
+            fromUserId: getSupportIdFromToken(),
+            toUserId: 7, // Hardcoded client ID
           }),
         });
       }
@@ -188,45 +208,46 @@ const SupportChatWindow = ({ ticket }) => {
       console.log('Support: Connected to WebSocket:', frame);
       stompClientRef.current = client;
 
-      // Extract support ID from JWT token
-      const tokenParts = token.split('.');
-      if (tokenParts.length === 3) {
-        try {
-          const payload = JSON.parse(atob(tokenParts[1]));
-          const supportId = payload.userId;
-          console.log('Support: Extracted supportId from token:', supportId);
-
-          const callSub = client.subscribe(`/user/${supportId}/call/incoming`, (message) => {
-            const callNotification = JSON.parse(message.body);
-            console.log('Support: Received incoming call:', callNotification);
-            setIncomingCall(callNotification);
-            callIdRef.current = callNotification.callId;
-          });
-
-          const signalSub = client.subscribe(`/user/${supportId}/call/signal`, (message) => {
-            const signal = JSON.parse(message.body);
-            if (signal.callId === callIdRef.current) {
-              handleWebRTCSignal(signal);
-            }
-          });
-
-          const endSub = client.subscribe(`/user/${supportId}/call/end`, (message) => {
-            const notification = JSON.parse(message.body);
-            if (notification.callId === callIdRef.current) {
-              setCallStatus('ended');
-              setIncomingCall(null);
-              stopTimer();
-              cleanupCall();
-            }
-          });
-
-          setCallSubscription({ callSub, signalSub, endSub });
-        } catch (error) {
-          console.error('Support: Error parsing JWT token:', error);
-        }
-      } else {
-        console.error('Support: Invalid JWT token format');
+      const supportId = getSupportIdFromToken();
+      if (!supportId) {
+        console.error('Support: Failed to extract supportId from token');
+        return;
       }
+
+      const callSub = client.subscribe(`/user/${supportId}/call/incoming`, (message) => {
+        const callNotification = JSON.parse(message.body);
+        console.log('Support: Received incoming call:', callNotification);
+        setIncomingCall(callNotification);
+        callIdRef.current = callNotification.callId;
+      });
+
+      const signalSub = client.subscribe(`/user/${supportId}/call/signal`, (message) => {
+        const signal = JSON.parse(message.body);
+        if (signal.callId === callIdRef.current) {
+          handleWebRTCSignal(signal);
+        }
+      });
+
+      const responseSub = client.subscribe(`/user/${supportId}/call/response`, (message) => {
+        const response = JSON.parse(message.body);
+        console.log('Support: Received call response:', response);
+        if (response.callId === callIdRef.current && response.accepted) {
+          setCallStatus('connected');
+          startTimer(response.timestamp);
+        }
+      });
+
+      const endSub = client.subscribe(`/user/${supportId}/call/end`, (message) => {
+        const notification = JSON.parse(message.body);
+        if (notification.callId === callIdRef.current) {
+          setCallStatus('ended');
+          setIncomingCall(null);
+          stopTimer();
+          cleanupCall();
+        }
+      });
+
+      setCallSubscription({ callSub, signalSub, responseSub, endSub });
     };
 
     client.onStompError = (error) => console.error('Support: WebSocket STOMP error:', error);
@@ -337,16 +358,24 @@ const SupportChatWindow = ({ ticket }) => {
 
     stompClientRef.current.publish({
       destination: `/app/call/${callIdRef.current}/respond`,
-      body: JSON.stringify({ callId: callIdRef.current, accepted: true }),
+      body: JSON.stringify({ 
+        callId: callIdRef.current, 
+        accepted: true, 
+        timestamp: new Date().toISOString(),
+        jwtToken: `Bearer ${token}`
+      }),
     });
-    startTimer(new Date());
   };
 
   const handleRejectCall = () => {
     if (stompClientRef.current && callIdRef.current) {
       stompClientRef.current.publish({
         destination: `/app/call/${callIdRef.current}/respond`,
-        body: JSON.stringify({ callId: callIdRef.current, accepted: false }),
+        body: JSON.stringify({ 
+          callId: callIdRef.current, 
+          accepted: false,
+          jwtToken: `Bearer ${token}`
+        }),
       });
     }
     setIncomingCall(null);
@@ -371,29 +400,16 @@ const SupportChatWindow = ({ ticket }) => {
         await peerConnectionRef.current.setLocalDescription(answer);
         console.log('Support: Answer SDP:', answer.sdp);
 
-        // Extract support ID from JWT token
-        const tokenParts = token.split('.');
-        if (tokenParts.length === 3) {
-          try {
-            const payload = JSON.parse(atob(tokenParts[1]));
-            const supportId = payload.userId;
-
-            stompClientRef.current.publish({
-              destination: `/app/call/${callIdRef.current}/signal`,
-              body: JSON.stringify({ 
-                callId: callIdRef.current, 
-                type: 'answer', 
-                data: JSON.stringify(answer), 
-                fromUserId: supportId, 
-                toUserId: 1 
-              }),
-            });
-          } catch (error) {
-            console.error('Support: Error parsing JWT token:', error);
-          }
-        } else {
-          console.error('Support: Invalid JWT token format');
-        }
+        stompClientRef.current.publish({
+          destination: `/app/call/${callIdRef.current}/signal`,
+          body: JSON.stringify({ 
+            callId: callIdRef.current, 
+            type: 'answer', 
+            data: JSON.stringify(answer), 
+            fromUserId: getSupportIdFromToken(), 
+            toUserId: 7 // Hardcoded client ID
+          }),
+        });
       } else if (signal.type === 'ice-candidate') {
         const candidate = new RTCIceCandidate(JSON.parse(signal.data));
         await peerConnectionRef.current.addIceCandidate(candidate);

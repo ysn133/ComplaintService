@@ -5,7 +5,6 @@ import { PhoneIcon, VideoCameraIcon, ArrowsPointingOutIcon, ChevronDownIcon } fr
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
-
 const ChatWindow = ({ ticket }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -49,6 +48,24 @@ const ChatWindow = ({ ticket }) => {
 
   const token = getToken();
 
+  // Decode JWT payload using base64
+  const getUserIdFromToken = () => {
+    try {
+      if (!token) {
+        throw new Error('No JWT token available');
+      }
+      const [, payload] = token.split('.'); // Get payload (second part)
+      const decodedPayload = atob(payload); // Base64 decode
+      const parsedPayload = JSON.parse(decodedPayload);
+      return parsedPayload.sub; // Adjust to 'userId' or other claim if needed
+    } catch (error) {
+      console.error('Client: Error decoding JWT payload:', error);
+      return null;
+    }
+  };
+
+  const userId = getUserIdFromToken();
+  const supportId = 1; // Hardcoded support ID as requested
 
   const initializePeerConnection = async () => {
     const pc = new RTCPeerConnection({
@@ -65,8 +82,8 @@ const ChatWindow = ({ ticket }) => {
             callId: callIdRef.current,
             type: 'ice-candidate',
             data: JSON.stringify(event.candidate),
-            fromUserId: 1,
-            toUserId: 1,
+            fromUserId: userId,
+            toUserId: supportId,
           }),
         });
       }
@@ -118,8 +135,8 @@ const ChatWindow = ({ ticket }) => {
   };
 
   useEffect(() => {
-    if (!token) {
-      console.error('Client: No JWT token available');
+    if (!token || !userId) {
+      console.error('Client: No JWT token or userId available');
       return;
     }
 
@@ -138,7 +155,7 @@ const ChatWindow = ({ ticket }) => {
       stompClientRef.current = client;
       setIsConnected(true);
 
-      const callSub = client.subscribe('/user/1/call/response', (message) => {
+      const callSub = client.subscribe(`/user/${userId}/call/response`, (message) => {
         const response = JSON.parse(message.body);
         console.log('Client: Received call response:', response);
         if (response.callId) {
@@ -158,14 +175,14 @@ const ChatWindow = ({ ticket }) => {
         }
       });
 
-      const signalSub = client.subscribe('/user/1/call/signal', (message) => {
+      const signalSub = client.subscribe(`/user/${userId}/call/signal`, (message) => {
         const signal = JSON.parse(message.body);
         if (signal.callId === callIdRef.current) {
           handleWebRTCSignal(signal);
         }
       });
 
-      const endSub = client.subscribe('/user/1/call/end', (message) => {
+      const endSub = client.subscribe(`/user/${userId}/call/end`, (message) => {
         const notification = JSON.parse(message.body);
         if (notification.callId === callIdRef.current) {
           setCallStatus('ended');
@@ -190,7 +207,7 @@ const ChatWindow = ({ ticket }) => {
     return () => {
       if (client) client.deactivate();
     };
-  }, [token]);
+  }, [token, userId]);
 
   useEffect(() => {
     if (isConnected && stompClientRef.current && pendingCall) {
@@ -226,19 +243,14 @@ const ChatWindow = ({ ticket }) => {
       }
     };
 
-    // Clean up previous subscriptions
     if (subscription) {
       subscription.unsubscribe();
       setSubscription(null);
     }
 
-    // Reset messages when ticket changes
     setMessages([]);
-    
-    // Fetch messages for new ticket
     fetchMessages();
 
-    // Subscribe to new ticket topic if connected
     if (stompClientRef.current && ticket) {
       const newSubscription = stompClientRef.current.subscribe(`/topic/ticket/${ticket.id}`, (message) => {
         const receivedMessage = JSON.parse(message.body);
@@ -294,9 +306,7 @@ const ChatWindow = ({ ticket }) => {
   };
 
   const sendMessage = () => {
-    if (newMessage.trim() && stompClientRef.current && ticket) {
-   
-      
+    if (newMessage.trim() && stompClientRef.current && ticket && userId) {
       stompClientRef.current.publish({
         destination: `/app/ticket/${ticket.id}/sendMessage`,
         body: JSON.stringify({ 
@@ -324,7 +334,7 @@ const ChatWindow = ({ ticket }) => {
 
       stompClientRef.current.publish({
         destination: `/app/call/${callIdRef.current}/signal`,
-        body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: 1, toUserId: 1 }),
+        body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: userId, toUserId: supportId }),
       });
     } catch (error) {
       console.error('Client: Error starting WebRTC call:', error.message);
@@ -363,7 +373,7 @@ const ChatWindow = ({ ticket }) => {
 
       stompClientRef.current.publish({
         destination: `/app/call/${callIdRef.current}/signal`,
-        body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: 1, toUserId: 1 }),
+        body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: userId, toUserId: supportId }),
       });
 
       if (localVideoRef.current) {
@@ -412,7 +422,7 @@ const ChatWindow = ({ ticket }) => {
 
       stompClientRef.current.publish({
         destination: `/app/call/${callIdRef.current}/signal`,
-        body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: 1, toUserId: 1 }),
+        body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: userId, toUserId: supportId }),
       });
     } catch (error) {
       console.error('Client: Error stopping screen sharing:', error.message);
@@ -467,8 +477,8 @@ const ChatWindow = ({ ticket }) => {
   };
 
   const handleVoiceCallClick = async () => {
-    if (!stompClientRef.current || !ticket) {
-      console.error('Client: Cannot initiate call: missing stompClient or ticket');
+    if (!stompClientRef.current || !ticket || !userId) {
+      console.error('Client: Cannot initiate call: missing stompClient, ticket, or userId');
       return;
     }
 
@@ -483,7 +493,7 @@ const ChatWindow = ({ ticket }) => {
       destination: `/app/ticket/${ticket.id}/initiateCall`,
       body: JSON.stringify({ 
         ticketId: ticket.id, 
-        callerId: 1, 
+        callerId: userId, 
         callerType: 'CLIENT', 
         callId: tempCallId,
         jwtToken: `Bearer ${token}`
