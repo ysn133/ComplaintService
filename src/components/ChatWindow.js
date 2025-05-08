@@ -65,17 +65,23 @@ const ChatWindow = ({ ticket }) => {
   };
 
   const userId = getUserIdFromToken();
-  const supportId = 1; // Hardcoded support ID as requested
 
   const initializePeerConnection = async () => {
+    if (!ticket?.supportTeamId) {
+      console.error('Client: Cannot initialize PeerConnection: missing supportTeamId', { ticket });
+      setCallStatus('ended');
+      cleanupCall();
+      return null;
+    }
+
     const pc = new RTCPeerConnection({
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
     });
-    console.log('Client: PeerConnection initialized');
+    console.log('Client: PeerConnection initialized for supportTeamId:', ticket.supportTeamId);
 
     pc.onicecandidate = (event) => {
       if (event.candidate && stompClientRef.current && callIdRef.current) {
-        console.log('Client: Sending ICE candidate:', event.candidate);
+        console.log('Client: Sending ICE candidate to supportTeamId:', ticket.supportTeamId);
         stompClientRef.current.publish({
           destination: `/app/call/${callIdRef.current}/signal`,
           body: JSON.stringify({
@@ -83,7 +89,7 @@ const ChatWindow = ({ ticket }) => {
             type: 'ice-candidate',
             data: JSON.stringify(event.candidate),
             fromUserId: userId,
-            toUserId: supportId,
+            toUserId: ticket.supportTeamId,
           }),
         });
       }
@@ -163,9 +169,11 @@ const ChatWindow = ({ ticket }) => {
           if (response.accepted) {
             setCallStatus('connected');
             startTimer(new Date(response.timestamp));
-            if (client.active) {
+            if (client.active && ticket?.supportTeamId) {
+              console.log('Client: Starting WebRTC call for ticket:', ticket);
               startWebRTCCall();
             } else {
+              console.warn('Client: Delaying WebRTC call due to missing ticket or inactive client', { ticket, clientActive: client.active });
               setPendingCall(response);
             }
           } else {
@@ -207,20 +215,32 @@ const ChatWindow = ({ ticket }) => {
     return () => {
       if (client) client.deactivate();
     };
-  }, [token, userId]);
+  }, [token, userId, ticket]); // Added ticket to dependencies
 
   useEffect(() => {
-    if (isConnected && stompClientRef.current && pendingCall) {
+    if (isConnected && stompClientRef.current && pendingCall && ticket?.supportTeamId) {
+      console.log('Client: Processing pending call with ticket:', ticket);
       callIdRef.current = pendingCall.callId;
       setCallStatus('connected');
       startTimer(new Date(pendingCall.timestamp));
       startWebRTCCall();
       setPendingCall(null);
+    } else if (pendingCall) {
+      console.warn('Client: Cannot process pending call: missing requirements', {
+        isConnected,
+        stompClient: !!stompClientRef.current,
+        supportTeamId: !!ticket?.supportTeamId,
+      });
     }
-  }, [isConnected, pendingCall]);
+  }, [isConnected, pendingCall, ticket]); // Added ticket to dependencies
 
   useEffect(() => {
     console.log('Ticket changed:', ticket);
+    if (ticket?.supportTeamId) {
+      console.log('Client: Ticket supportTeamId:', ticket.supportTeamId);
+    } else {
+      console.warn('Client: Ticket missing or lacks supportTeamId:', ticket);
+    }
     const fetchMessages = async () => {
       if (!ticket || !token) {
         console.log('No ticket or token available');
@@ -320,8 +340,14 @@ const ChatWindow = ({ ticket }) => {
   };
 
   const startWebRTCCall = async () => {
-    if (!stompClientRef.current || !callIdRef.current || !peerConnectionRef.current) {
-      console.error('Client: Cannot start WebRTC call: missing stompClient, callId, or peerConnection');
+    if (!stompClientRef.current || !callIdRef.current || !peerConnectionRef.current || !ticket?.supportTeamId) {
+      console.error('Client: Cannot start WebRTC call: missing requirements', {
+        stompClient: !!stompClientRef.current,
+        callId: !!callIdRef.current,
+        peerConnection: !!peerConnectionRef.current,
+        supportTeamId: !!ticket?.supportTeamId,
+        ticket,
+      });
       setCallStatus('ended');
       cleanupCall();
       return;
@@ -334,7 +360,13 @@ const ChatWindow = ({ ticket }) => {
 
       stompClientRef.current.publish({
         destination: `/app/call/${callIdRef.current}/signal`,
-        body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: userId, toUserId: supportId }),
+        body: JSON.stringify({
+          callId: callIdRef.current,
+          type: 'offer',
+          data: JSON.stringify(offer),
+          fromUserId: userId,
+          toUserId: ticket.supportTeamId
+        }),
       });
     } catch (error) {
       console.error('Client: Error starting WebRTC call:', error.message);
@@ -344,8 +376,14 @@ const ChatWindow = ({ ticket }) => {
   };
 
   const startScreenSharing = async () => {
-    if (!peerConnectionRef.current || !stompClientRef.current || !callIdRef.current) {
-      console.error('Client: Cannot start screen sharing: missing peerConnection, stompClient, or callId');
+    if (!peerConnectionRef.current || !stompClientRef.current || !callIdRef.current || !ticket?.supportTeamId) {
+      console.error('Client: Cannot start screen sharing: missing requirements', {
+        peerConnection: !!peerConnectionRef.current,
+        stompClient: !!stompClientRef.current,
+        callId: !!callIdRef.current,
+        supportTeamId: !!ticket?.supportTeamId,
+        ticket,
+      });
       return;
     }
 
@@ -373,7 +411,13 @@ const ChatWindow = ({ ticket }) => {
 
       stompClientRef.current.publish({
         destination: `/app/call/${callIdRef.current}/signal`,
-        body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: userId, toUserId: supportId }),
+        body: JSON.stringify({
+          callId: callIdRef.current,
+          type: 'offer',
+          data: JSON.stringify(offer),
+          fromUserId: userId,
+          toUserId: ticket.supportTeamId
+        }),
       });
 
       if (localVideoRef.current) {
@@ -403,8 +447,14 @@ const ChatWindow = ({ ticket }) => {
       console.log('Client: Cleared local video srcObject');
     }
 
-    if (!peerConnectionRef.current || !stompClientRef.current || !callIdRef.current) {
-      console.error('Client: Cannot renegotiate after stopping screen share: missing requirements');
+    if (!peerConnectionRef.current || !stompClientRef.current || !callIdRef.current || !ticket?.supportTeamId) {
+      console.error('Client: Cannot renegotiate after stopping screen share: missing requirements', {
+        peerConnection: !!peerConnectionRef.current,
+        stompClient: !!stompClientRef.current,
+        callId: !!callIdRef.current,
+        supportTeamId: !!ticket?.supportTeamId,
+        ticket,
+      });
       return;
     }
 
@@ -422,7 +472,13 @@ const ChatWindow = ({ ticket }) => {
 
       stompClientRef.current.publish({
         destination: `/app/call/${callIdRef.current}/signal`,
-        body: JSON.stringify({ callId: callIdRef.current, type: 'offer', data: JSON.stringify(offer), fromUserId: userId, toUserId: supportId }),
+        body: JSON.stringify({
+          callId: callIdRef.current,
+          type: 'offer',
+          data: JSON.stringify(offer),
+          fromUserId: userId,
+          toUserId: ticket.supportTeamId
+        }),
       });
     } catch (error) {
       console.error('Client: Error stopping screen sharing:', error.message);
@@ -477,8 +533,14 @@ const ChatWindow = ({ ticket }) => {
   };
 
   const handleVoiceCallClick = async () => {
-    if (!stompClientRef.current || !ticket || !userId) {
-      console.error('Client: Cannot initiate call: missing stompClient, ticket, or userId');
+    if (!stompClientRef.current || !ticket || !userId || !ticket?.supportTeamId) {
+      console.error('Client: Cannot initiate call: missing requirements', {
+        stompClient: !!stompClientRef.current,
+        ticket: !!ticket,
+        userId: !!userId,
+        supportTeamId: !!ticket?.supportTeamId,
+        ticket,
+      });
       return;
     }
 
@@ -502,6 +564,7 @@ const ChatWindow = ({ ticket }) => {
   };
 
   const handleHangUp = () => {
+    console.log('Client: handleHangUp called');
     if (stompClientRef.current && callIdRef.current) {
       stompClientRef.current.publish({ destination: `/app/call/${callIdRef.current}/end`, body: JSON.stringify({ callId: callIdRef.current }) });
     }
@@ -610,7 +673,7 @@ const ChatWindow = ({ ticket }) => {
           </div>
           <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-light-bg dark:bg-dark-bg shadow-sm">
             <div className="flex items-center space-x-2">
-              <button onClick={handleVoiceCallClick} className="p-2 text-gray-500 hover:text-primary" disabled={callStatus !== null}>
+              <button onClick={handleVoiceCallClick} className="p-2 text-gray-500 hover:text-primary" disabled={callStatus !== null || !ticket?.supportTeamId}>
                 <PhoneIcon className="w-5 h-5" />
               </button>
               <input

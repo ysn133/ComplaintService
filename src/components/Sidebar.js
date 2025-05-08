@@ -52,14 +52,15 @@ const Sidebar = ({ selectedTicketId, onSelectTicket }) => {
           return;
         }
 
-        // Transform ticket data to match TicketItem expectations
+        // Transform ticket data to match TicketItem and ChatWindow expectations
         const validTickets = ticketData.map((ticket) => ({
           id: ticket.id,
           subject: ticket.title,
           lastMessageTime: ticket.updatedAt,
-          unreadCount: ticket.unreadCount || 0, // Default to 0 if not provided
+          unreadCount: ticket.unreadCount || 0,
+          supportTeamId: ticket.supportTeamId, // Include supportTeamId from API
         })).filter(
-          (ticket) => ticket && typeof ticket === 'object' && ticket.id && ticket.subject
+          (ticket) => ticket && typeof ticket === 'object' && ticket.id && ticket.subject && ticket.supportTeamId
         );
         if (validTickets.length !== ticketData.length) {
           console.warn('Some tickets are invalid:', ticketData);
@@ -92,7 +93,7 @@ const Sidebar = ({ selectedTicketId, onSelectTicket }) => {
         }
 
         setError(errorMessage);
-        setTickets([]); // Ensure tickets is an array to prevent map error
+        setTickets([]);
         setLoading(false);
       }
     };
@@ -101,7 +102,7 @@ const Sidebar = ({ selectedTicketId, onSelectTicket }) => {
   }, [token]);
 
   const handleTicketSelect = (ticket) => {
-    console.log('Selected ticket:', ticket);
+    console.log('Sidebar: Selected ticket:', ticket);
     onSelectTicket(ticket);
   };
 
