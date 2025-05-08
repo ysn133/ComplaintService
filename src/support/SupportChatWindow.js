@@ -16,6 +16,7 @@ const SupportChatWindow = ({ ticket }) => {
   const [callSubscription, setCallSubscription] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
   const callIdRef = useRef(null);
+  const callerIdRef = useRef(null); // Store callerId persistently
   const [callStatus, setCallStatus] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1.0);
@@ -82,8 +83,8 @@ const SupportChatWindow = ({ ticket }) => {
     console.log('Support: PeerConnection initialized');
 
     pc.onicecandidate = (event) => {
-      if (event.candidate && stompClientRef.current && callIdRef.current) {
-        console.log('Support: Sending ICE candidate:', event.candidate);
+      if (event.candidate && stompClientRef.current && callIdRef.current && callerIdRef.current) {
+        console.log('Support: Sending ICE candidate:', event.candidate, 'to clientId:', callerIdRef.current);
         stompClientRef.current.publish({
           destination: `/app/call/${callIdRef.current}/signal`,
           body: JSON.stringify({
@@ -91,8 +92,15 @@ const SupportChatWindow = ({ ticket }) => {
             type: 'ice-candidate',
             data: JSON.stringify(event.candidate),
             fromUserId: getSupportIdFromToken(),
-            toUserId: 7, // Hardcoded client ID
+            toUserId: callerIdRef.current,
           }),
+        });
+      } else {
+        console.warn('Support: Skipping ICE candidate send - missing:', {
+          candidate: !!event.candidate,
+          stompClient: !!stompClientRef.current,
+          callId: !!callIdRef.current,
+          callerId: !!callerIdRef.current,
         });
       }
     };
@@ -117,7 +125,9 @@ const SupportChatWindow = ({ ticket }) => {
           audioRef.current.srcObject = stream;
           audioRef.current.volume = volume;
           audioRef.current.muted = false;
-          audioRef.current.play().catch(err => console.error('Support: Audio play error:', err.message));
+          audioRef.current.play()
+            .then(() => console.log('Support: Audio playback started successfully'))
+            .catch(err => console.error('Support: Audio play error:', err.message));
         }
       }
 
@@ -219,6 +229,8 @@ const SupportChatWindow = ({ ticket }) => {
         console.log('Support: Received incoming call:', callNotification);
         setIncomingCall(callNotification);
         callIdRef.current = callNotification.callId;
+        callerIdRef.current = callNotification.callerId; // Store callerId
+        console.log('Support: Set callerIdRef:', callerIdRef.current);
       });
 
       const signalSub = client.subscribe(`/user/${supportId}/call/signal`, (message) => {
@@ -241,7 +253,6 @@ const SupportChatWindow = ({ ticket }) => {
         const notification = JSON.parse(message.body);
         if (notification.callId === callIdRef.current) {
           setCallStatus('ended');
-          setIncomingCall(null);
           stopTimer();
           cleanupCall();
         }
@@ -306,6 +317,10 @@ const SupportChatWindow = ({ ticket }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    console.log('Support: incomingCall state changed:', incomingCall);
+  }, [incomingCall]);
+
   const startTimer = (startTime) => {
     const start = new Date(startTime);
     timerRef.current = setInterval(() => {
@@ -354,7 +369,6 @@ const SupportChatWindow = ({ ticket }) => {
     }
 
     setCallStatus('connected');
-    setIncomingCall(null);
 
     stompClientRef.current.publish({
       destination: `/app/call/${callIdRef.current}/respond`,
@@ -380,6 +394,7 @@ const SupportChatWindow = ({ ticket }) => {
     }
     setIncomingCall(null);
     callIdRef.current = null;
+    callerIdRef.current = null;
     setCallStatus(null);
   };
 
@@ -400,6 +415,11 @@ const SupportChatWindow = ({ ticket }) => {
         await peerConnectionRef.current.setLocalDescription(answer);
         console.log('Support: Answer SDP:', answer.sdp);
 
+        if (!callerIdRef.current) {
+          console.error('Support: Cannot send answer - missing callerId');
+          return;
+        }
+
         stompClientRef.current.publish({
           destination: `/app/call/${callIdRef.current}/signal`,
           body: JSON.stringify({ 
@@ -407,9 +427,10 @@ const SupportChatWindow = ({ ticket }) => {
             type: 'answer', 
             data: JSON.stringify(answer), 
             fromUserId: getSupportIdFromToken(), 
-            toUserId: 7 // Hardcoded client ID
+            toUserId: callerIdRef.current
           }),
         });
+        console.log('Support: Sent answer to clientId:', callerIdRef.current);
       } else if (signal.type === 'ice-candidate') {
         const candidate = new RTCIceCandidate(JSON.parse(signal.data));
         await peerConnectionRef.current.addIceCandidate(candidate);
@@ -432,6 +453,8 @@ const SupportChatWindow = ({ ticket }) => {
     }
     remoteStreamRef.current = null;
     callIdRef.current = null;
+    callerIdRef.current = null;
+    setIncomingCall(null);
     setIsMuted(false);
     setVolume(1.0);
     setIsScreenSharing(false);
