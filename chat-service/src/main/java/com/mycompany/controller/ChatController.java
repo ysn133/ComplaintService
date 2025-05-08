@@ -323,6 +323,7 @@ public class ChatController {
 
             String callId = UUID.randomUUID().toString();
             callNotification.setCallId(callId);
+            callNotification.setJwtToken(null); // Remove JWT token before sending to client
             activeCalls.put(callId, ticketId);
             callJwtTokens.put(callId, "Bearer " + token); // Store JWT token
 
@@ -381,6 +382,7 @@ public class ChatController {
             }
 
             callResponse.setCallId(callId);
+            callResponse.setJwtToken(null); // Remove JWT token before sending to client
 
             if (callResponse.isAccepted()) {
                 callResponse.setTimestamp(LocalDateTime.now().toString());
@@ -398,15 +400,18 @@ public class ChatController {
                 logger.info("Sent call acceptance to clientId " + clientId + " and supportId " + supportId);
             } else {
                 // Notify both client and support of rejection
+                CallNotificationDTO notification = new CallNotificationDTO();
+                notification.setCallId(callId);
+                notification.setJwtToken(null); // Remove JWT token
                 messagingTemplate.convertAndSendToUser(
                         clientId.toString(),
                         "/call/end",
-                        new CallNotificationDTO() {{ setCallId(callId); }}
+                        notification
                 );
                 messagingTemplate.convertAndSendToUser(
                         supportId.toString(),
                         "/call/end",
-                        new CallNotificationDTO() {{ setCallId(callId); }}
+                        notification
                 );
                 activeCalls.remove(callId);
                 callJwtTokens.remove(callId);
@@ -475,18 +480,21 @@ public class ChatController {
             Long supportId = root.path("ticket").path("supportTeamId").asLong();
             Long clientId = root.path("ticket").path("clientId").asLong();
 
+            CallNotificationDTO notification = new CallNotificationDTO();
+            notification.setCallId(callId);
+            notification.setJwtToken(null); // Remove JWT token
             if (supportId != null && supportId != 0) {
                 messagingTemplate.convertAndSendToUser(
                         supportId.toString(),
                         "/call/end",
-                        new CallNotificationDTO() {{ setCallId(callId); }}
+                        notification
                 );
             }
             if (clientId != null && clientId != 0) {
                 messagingTemplate.convertAndSendToUser(
                         clientId.toString(),
                         "/call/end",
-                        new CallNotificationDTO() {{ setCallId(callId); }}
+                        notification
                 );
             }
 
