@@ -200,6 +200,19 @@ const ChatWindow = ({ ticket }) => {
       });
 
       setCallSubscription({ callSub, signalSub, endSub });
+
+      // Subscribe to ticket messages if ticket is available
+      if (ticket) {
+        const ticketSub = client.subscribe(`/topic/ticket/${ticket.id}`, (message) => {
+          const receivedMessage = JSON.parse(message.body);
+          setMessages((prev) => [...prev, { 
+            ...receivedMessage, 
+            content: receivedMessage.message, 
+            timestamp: receivedMessage.createdAt 
+          }]);
+        });
+        setSubscription(ticketSub);
+      }
     };
 
     client.onStompError = (error) => console.error('Client: WebSocket STOMP error:', error);
@@ -215,7 +228,7 @@ const ChatWindow = ({ ticket }) => {
     return () => {
       if (client) client.deactivate();
     };
-  }, [token, userId, ticket]); // Added ticket to dependencies
+  }, [token, userId]);
 
   useEffect(() => {
     if (isConnected && stompClientRef.current && pendingCall && ticket?.supportTeamId) {
@@ -232,7 +245,7 @@ const ChatWindow = ({ ticket }) => {
         supportTeamId: !!ticket?.supportTeamId,
       });
     }
-  }, [isConnected, pendingCall, ticket]); // Added ticket to dependencies
+  }, [isConnected, pendingCall, ticket]);
 
   useEffect(() => {
     console.log('Ticket changed:', ticket);
@@ -263,15 +276,14 @@ const ChatWindow = ({ ticket }) => {
       }
     };
 
-    if (subscription) {
-      subscription.unsubscribe();
-      setSubscription(null);
-    }
-
-    setMessages([]);
     fetchMessages();
 
+    // Update subscription only if ticket changes
     if (stompClientRef.current && ticket) {
+      if (subscription) {
+        subscription.unsubscribe();
+        setSubscription(null);
+      }
       const newSubscription = stompClientRef.current.subscribe(`/topic/ticket/${ticket.id}`, (message) => {
         const receivedMessage = JSON.parse(message.body);
         setMessages((prev) => [...prev, { 
@@ -286,9 +298,10 @@ const ChatWindow = ({ ticket }) => {
     return () => {
       if (subscription) {
         subscription.unsubscribe();
+        setSubscription(null);
       }
     };
-  }, [ticket, token]);
+  }, [ticket, isConnected]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
