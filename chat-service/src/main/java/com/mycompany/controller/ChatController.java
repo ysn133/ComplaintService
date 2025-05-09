@@ -260,6 +260,10 @@ public class ChatController {
         }
     }
 
+
+
+    //call logic
+
     @MessageMapping("/ticket/{ticketId}/initiateCall")
     public void initiateCall(
             @DestinationVariable Long ticketId,
@@ -329,7 +333,7 @@ public class ChatController {
 
             messagingTemplate.convertAndSendToUser(
                     supportId.toString(),
-                    "/call/incoming",
+                   "/ticket/" + ticketId + "/call/incoming",
                     callNotification
             );
             logger.info("Notified supportId " + supportId + " of incoming call: callId=" + callId);
@@ -389,12 +393,12 @@ public class ChatController {
                 // Notify both client and support of acceptance
                 messagingTemplate.convertAndSendToUser(
                         clientId.toString(),
-                        "/call/response",
+                         "/ticket/" + ticketId + "/call/response",
                         callResponse
                 );
                 messagingTemplate.convertAndSendToUser(
                         supportId.toString(),
-                        "/call/response",
+                        "/ticket/" + ticketId + "/call/response",
                         callResponse
                 );
                 logger.info("Sent call acceptance to clientId " + clientId + " and supportId " + supportId);
@@ -405,12 +409,12 @@ public class ChatController {
                 notification.setJwtToken(null); // Remove JWT token
                 messagingTemplate.convertAndSendToUser(
                         clientId.toString(),
-                        "/call/end",
+                        "/ticket/" + ticketId + "/call/end",
                         notification
                 );
                 messagingTemplate.convertAndSendToUser(
                         supportId.toString(),
-                        "/call/end",
+                         "/ticket/" + ticketId + "/call/end",
                         notification
                 );
                 activeCalls.remove(callId);
@@ -437,7 +441,7 @@ public class ChatController {
         Long toUserId = signal.getToUserId();
         messagingTemplate.convertAndSendToUser(
                 toUserId.toString(),
-                "/call/signal",
+                "/ticket/" + ticketId + "/call/signal",
                 signal
         );
         logger.info("Sent WebRTC signal to userId " + toUserId);
@@ -486,14 +490,14 @@ public class ChatController {
             if (supportId != null && supportId != 0) {
                 messagingTemplate.convertAndSendToUser(
                         supportId.toString(),
-                        "/call/end",
+                        "/ticket/" + ticketId + "/call/end",
                         notification
                 );
             }
             if (clientId != null && clientId != 0) {
                 messagingTemplate.convertAndSendToUser(
                         clientId.toString(),
-                        "/call/end",
+                       "/ticket/" + ticketId +  "/call/end",
                         notification
                 );
             }
