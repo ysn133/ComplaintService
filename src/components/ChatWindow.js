@@ -8,6 +8,7 @@ import { Client } from '@stomp/stompjs';
 const ChatWindow = ({ ticket }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [ticketId, setTicketId] = useState(null); // Store ticket ID
   const stompClientRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const [subscription, setSubscription] = useState(null);
@@ -37,12 +38,10 @@ const ChatWindow = ({ ticket }) => {
   const getToken = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = urlParams.get('token');
-
     if (tokenFromUrl) {
       localStorage.setItem('jwtToken', tokenFromUrl);
       return tokenFromUrl;
     }
-
     return localStorage.getItem('jwtToken') || null;
   };
 
@@ -51,13 +50,11 @@ const ChatWindow = ({ ticket }) => {
   // Decode JWT payload using base64
   const getUserIdFromToken = () => {
     try {
-      if (!token) {
-        throw new Error('No JWT token available');
-      }
-      const [, payload] = token.split('.'); // Get payload (second part)
-      const decodedPayload = atob(payload); // Base64 decode
+      if (!token) throw new Error('No JWT token available');
+      const [, payload] = token.split('.');
+      const decodedPayload = atob(payload);
       const parsedPayload = JSON.parse(decodedPayload);
-      return parsedPayload.sub; // Adjust to 'userId' or other claim if needed
+      return parsedPayload.sub; // Adjust based on your JWT structure
     } catch (error) {
       console.error('Client: Error decoding JWT payload:', error);
       return null;
@@ -65,6 +62,29 @@ const ChatWindow = ({ ticket }) => {
   };
 
   const userId = getUserIdFromToken();
+
+  // Log ticket object and store ticket ID when ticket prop changes
+  useEffect(() => {
+    if (ticket) {
+      console.log('Client: Ticket clicked, ticket object:', ticket);
+      console.log('Client: Possible ticket ID properties:', {
+        id: ticket.id,
+        ticketId: ticket.ticketId,
+      });
+      // Store the ticket ID (try 'id' first, then 'ticketId', or adjust based on logs)
+      const id = ticket.id || ticket.ticketId || null;
+      if (id) {
+        console.log('Client: Storing ticket ID:', id);
+        setTicketId(id);
+      } else {
+        console.warn('Client: No valid ticket ID found in ticket object');
+        setTicketId(null);
+      }
+    } else {
+      console.log('Client: No ticket selected');
+      setTicketId(null);
+    }
+  }, [ticket]);
 
   const initializePeerConnection = async () => {
     if (!ticket?.supportTeamId) {
@@ -140,6 +160,7 @@ const ChatWindow = ({ ticket }) => {
     return pc;
   };
 
+  // WebSocket connection setup
   useEffect(() => {
     if (!token || !userId) {
       console.error('Client: No JWT token or userId available');
@@ -160,59 +181,6 @@ const ChatWindow = ({ ticket }) => {
       console.log('Client: Connected to WebSocket:', frame);
       stompClientRef.current = client;
       setIsConnected(true);
-
-      const callSub = client.subscribe(`/user/${userId}/call/response`, (message) => {
-        const response = JSON.parse(message.body);
-        console.log('Client: Received call response:', response);
-        if (response.callId) {
-          callIdRef.current = response.callId;
-          if (response.accepted) {
-            setCallStatus('connected');
-            startTimer(new Date(response.timestamp));
-            if (client.active && ticket?.supportTeamId) {
-              console.log('Client: Starting WebRTC call for ticket:', ticket);
-              startWebRTCCall();
-            } else {
-              console.warn('Client: Delaying WebRTC call due to missing ticket or inactive client', { ticket, clientActive: client.active });
-              setPendingCall(response);
-            }
-          } else {
-            setCallStatus('ended');
-            cleanupCall();
-          }
-        }
-      });
-
-      const signalSub = client.subscribe(`/user/${userId}/call/signal`, (message) => {
-        const signal = JSON.parse(message.body);
-        if (signal.callId === callIdRef.current) {
-          handleWebRTCSignal(signal);
-        }
-      });
-
-      const endSub = client.subscribe(`/user/${userId}/call/end`, (message) => {
-        const notification = JSON.parse(message.body);
-        if (notification.callId === callIdRef.current) {
-          setCallStatus('ended');
-          stopTimer();
-          cleanupCall();
-        }
-      });
-
-      setCallSubscription({ callSub, signalSub, endSub });
-
-      // Subscribe to ticket messages if ticket is available
-      if (ticket) {
-        const ticketSub = client.subscribe(`/topic/ticket/${ticket.id}`, (message) => {
-          const receivedMessage = JSON.parse(message.body);
-          setMessages((prev) => [...prev, { 
-            ...receivedMessage, 
-            content: receivedMessage.message, 
-            timestamp: receivedMessage.createdAt 
-          }]);
-        });
-        setSubscription(ticketSub);
-      }
     };
 
     client.onStompError = (error) => console.error('Client: WebSocket STOMP error:', error);
@@ -230,78 +198,131 @@ const ChatWindow = ({ ticket }) => {
     };
   }, [token, userId]);
 
+  // Ticket-specific subscriptions using stored ticketId
+  useEffect(() => {
+    if (!isConnected || !stompClientRef.current || !ticketId) {
+      console.log('Client: Skipping subscriptions due to missing requirements', {
+        isConnected,
+        stompClient: !!stompClientRef.current,
+        ticketId,
+      });
+      return;
+    }
+
+    console.log('Client: Setting up subscriptions for ticket ID:', ticketId);
+
+    // Call-related subscriptions
+    const callSub = stompClientRef.current.subscribe(`/user/${userId}/ticket/${ticketId}/call/response`, (message) => {
+      const response = JSON.parse(message.body);
+      console.log('Client: Received call response for ticket ID:', ticketId, response);
+      if (response.callId) {
+        callIdRef.current = response.callId;
+        if (response.accepted) {
+          setCallStatus('connected');
+          startTimer(new Date(response.timestamp));
+          if (stompClientRef.current.active && ticket?.supportTeamId) {
+            console.log('Client: Starting WebRTC call for ticket ID:', ticketId);
+            startWebRTCCall();
+          } else {
+            console.warn('Client: Delaying WebRTC call due to missing ticket or inactive client', {
+              ticket,
+              clientActive: stompClientRef.current.active,
+            });
+            setPendingCall(response);
+          }
+        } else {
+          setCallStatus('ended');
+          cleanupCall();
+        }
+      }
+    });
+
+    const signalSub = stompClientRef.current.subscribe(`/user/${userId}/ticket/${ticketId}/call/signal`, (message) => {
+      const signal = JSON.parse(message.body);
+      if (signal.callId === callIdRef.current) {
+        handleWebRTCSignal(signal);
+      }
+    });
+
+    const endSub = stompClientRef.current.subscribe(`/user/${userId}/ticket/${ticketId}/call/end`, (message) => {
+      const notification = JSON.parse(message.body);
+      if (notification.callId === callIdRef.current) {
+        setCallStatus('ended');
+        stopTimer();
+        cleanupCall();
+      }
+    });
+
+    setCallSubscription({ callSub, signalSub, endSub });
+
+    // Message subscription
+    const ticketSub = stompClientRef.current.subscribe(`/topic/ticket/${ticketId}`, (message) => {
+      const receivedMessage = JSON.parse(message.body);
+      setMessages((prev) => [
+        ...prev,
+        {
+          ...receivedMessage,
+          content: receivedMessage.message,
+          timestamp: receivedMessage.createdAt,
+        },
+      ]);
+    });
+
+    setSubscription(ticketSub);
+
+    return () => {
+      if (callSubscription) {
+        callSubscription.callSub?.unsubscribe();
+        callSubscription.signalSub?.unsubscribe();
+        callSubscription.endSub?.unsubscribe();
+        setCallSubscription(null);
+      }
+      if (subscription) {
+        subscription.unsubscribe();
+        setSubscription(null);
+      }
+    };
+  }, [isConnected, ticketId]);
+
+  // Fetch messages
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!ticketId || !token) {
+        console.log('Client: No ticket ID or token available for fetching messages');
+        return;
+      }
+
+      console.log('Client: Fetching messages for ticket ID:', ticketId);
+      try {
+        const response = await axios.get(`https://192.168.0.102:8082/api/chat/messages/${ticketId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('Client: Received messages:', response.data);
+        setMessages(
+          response.data.map((msg) => ({
+            ...msg,
+            content: msg.message,
+            timestamp: msg.createdAt,
+          })) || []
+        );
+      } catch (error) {
+        console.error('Client: Error fetching messages:', error);
+      }
+    };
+
+    fetchMessages();
+  }, [ticketId, token]);
+
   useEffect(() => {
     if (isConnected && stompClientRef.current && pendingCall && ticket?.supportTeamId) {
-      console.log('Client: Processing pending call with ticket:', ticket);
+      console.log('Client: Processing pending call for ticket ID:', ticketId);
       callIdRef.current = pendingCall.callId;
       setCallStatus('connected');
       startTimer(new Date(pendingCall.timestamp));
       startWebRTCCall();
       setPendingCall(null);
-    } else if (pendingCall) {
-      console.warn('Client: Cannot process pending call: missing requirements', {
-        isConnected,
-        stompClient: !!stompClientRef.current,
-        supportTeamId: !!ticket?.supportTeamId,
-      });
     }
   }, [isConnected, pendingCall, ticket]);
-
-  useEffect(() => {
-    console.log('Ticket changed:', ticket);
-    if (ticket?.supportTeamId) {
-      console.log('Client: Ticket supportTeamId:', ticket.supportTeamId);
-    } else {
-      console.warn('Client: Ticket missing or lacks supportTeamId:', ticket);
-    }
-    const fetchMessages = async () => {
-      if (!ticket || !token) {
-        console.log('No ticket or token available');
-        return;
-      }
-      
-      console.log('Fetching messages for ticket:', ticket.id);
-      try {
-        const response = await axios.get(`https://192.168.0.102:8082/api/chat/messages/${ticket.id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        console.log('Received messages:', response.data);
-        setMessages(response.data.map((msg) => ({
-          ...msg,
-          content: msg.message,
-          timestamp: msg.createdAt,
-        })) || []);
-      } catch (error) {
-        console.error('Error fetching messages:', error);
-      }
-    };
-
-    fetchMessages();
-
-    // Update subscription only if ticket changes
-    if (stompClientRef.current && ticket) {
-      if (subscription) {
-        subscription.unsubscribe();
-        setSubscription(null);
-      }
-      const newSubscription = stompClientRef.current.subscribe(`/topic/ticket/${ticket.id}`, (message) => {
-        const receivedMessage = JSON.parse(message.body);
-        setMessages((prev) => [...prev, { 
-          ...receivedMessage, 
-          content: receivedMessage.message, 
-          timestamp: receivedMessage.createdAt 
-        }]);
-      });
-      setSubscription(newSubscription);
-    }
-
-    return () => {
-      if (subscription) {
-        subscription.unsubscribe();
-        setSubscription(null);
-      }
-    };
-  }, [ticket, isConnected]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -339,13 +360,14 @@ const ChatWindow = ({ ticket }) => {
   };
 
   const sendMessage = () => {
-    if (newMessage.trim() && stompClientRef.current && ticket && userId) {
+    if (newMessage.trim() && stompClientRef.current && ticketId && userId) {
+      console.log('Client: Sending message for ticket ID:', ticketId);
       stompClientRef.current.publish({
-        destination: `/app/ticket/${ticket.id}/sendMessage`,
-        body: JSON.stringify({ 
-          ticketId: ticket.id, 
+        destination: `/app/ticket/${ticketId}/sendMessage`,
+        body: JSON.stringify({
+          ticketId: ticketId,
           message: newMessage,
-          jwtToken: `Bearer ${token}`
+          jwtToken: `Bearer ${token}`,
         }),
       });
       setNewMessage('');
@@ -359,7 +381,6 @@ const ChatWindow = ({ ticket }) => {
         callId: !!callIdRef.current,
         peerConnection: !!peerConnectionRef.current,
         supportTeamId: !!ticket?.supportTeamId,
-        ticket,
       });
       setCallStatus('ended');
       cleanupCall();
@@ -378,7 +399,7 @@ const ChatWindow = ({ ticket }) => {
           type: 'offer',
           data: JSON.stringify(offer),
           fromUserId: userId,
-          toUserId: ticket.supportTeamId
+          toUserId: ticket.supportTeamId,
         }),
       });
     } catch (error) {
@@ -395,7 +416,6 @@ const ChatWindow = ({ ticket }) => {
         stompClient: !!stompClientRef.current,
         callId: !!callIdRef.current,
         supportTeamId: !!ticket?.supportTeamId,
-        ticket,
       });
       return;
     }
@@ -429,7 +449,7 @@ const ChatWindow = ({ ticket }) => {
           type: 'offer',
           data: JSON.stringify(offer),
           fromUserId: userId,
-          toUserId: ticket.supportTeamId
+          toUserId: ticket.supportTeamId,
         }),
       });
 
@@ -466,7 +486,6 @@ const ChatWindow = ({ ticket }) => {
         stompClient: !!stompClientRef.current,
         callId: !!callIdRef.current,
         supportTeamId: !!ticket?.supportTeamId,
-        ticket,
       });
       return;
     }
@@ -490,7 +509,7 @@ const ChatWindow = ({ ticket }) => {
           type: 'offer',
           data: JSON.stringify(offer),
           fromUserId: userId,
-          toUserId: ticket.supportTeamId
+          toUserId: ticket.supportTeamId,
         }),
       });
     } catch (error) {
@@ -546,17 +565,17 @@ const ChatWindow = ({ ticket }) => {
   };
 
   const handleVoiceCallClick = async () => {
-    if (!stompClientRef.current || !ticket || !userId || !ticket?.supportTeamId) {
+    if (!stompClientRef.current || !ticketId || !userId || !ticket?.supportTeamId) {
       console.error('Client: Cannot initiate call: missing requirements', {
         stompClient: !!stompClientRef.current,
-        ticket: !!ticket,
+        ticketId,
         userId: !!userId,
         supportTeamId: !!ticket?.supportTeamId,
-        ticket,
       });
       return;
     }
 
+    console.log('Client: Initiating call for ticket ID:', ticketId);
     setCallStatus('ringing');
     const pc = await initializePeerConnection();
     if (!pc) return;
@@ -565,13 +584,13 @@ const ChatWindow = ({ ticket }) => {
     callIdRef.current = tempCallId;
 
     stompClientRef.current.publish({
-      destination: `/app/ticket/${ticket.id}/initiateCall`,
-      body: JSON.stringify({ 
-        ticketId: ticket.id, 
-        callerId: userId, 
-        callerType: 'CLIENT', 
+      destination: `/app/ticket/${ticketId}/initiateCall`,
+      body: JSON.stringify({
+        ticketId: ticketId,
+        callerId: userId,
+        callerType: 'CLIENT',
         callId: tempCallId,
-        jwtToken: `Bearer ${token}`
+        jwtToken: `Bearer ${token}`,
       }),
     });
   };
@@ -579,7 +598,10 @@ const ChatWindow = ({ ticket }) => {
   const handleHangUp = () => {
     console.log('Client: handleHangUp called');
     if (stompClientRef.current && callIdRef.current) {
-      stompClientRef.current.publish({ destination: `/app/call/${callIdRef.current}/end`, body: JSON.stringify({ callId: callIdRef.current }) });
+      stompClientRef.current.publish({
+        destination: `/app/call/${callIdRef.current}/end`,
+        body: JSON.stringify({ callId: callIdRef.current }),
+      });
     }
     setCallStatus('ended');
     cleanupCall();
@@ -652,7 +674,7 @@ const ChatWindow = ({ ticket }) => {
         <>
           <div className="bg-light-bg dark:bg-dark-bg p-4 border-b border-gray-200 dark:border-gray-700 shadow-sm">
             <h2 className="text-lg font-semibold text-light-text dark:text-dark-text">
-              Ticket #{ticket.id} - {ticket.subject}
+              Ticket #{ticketId} - {ticket.subject}
             </h2>
           </div>
           <div className="flex-1 p-4 overflow-y-auto">
@@ -686,7 +708,11 @@ const ChatWindow = ({ ticket }) => {
           </div>
           <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-light-bg dark:bg-dark-bg shadow-sm">
             <div className="flex items-center space-x-2">
-              <button onClick={handleVoiceCallClick} className="p-2 text-gray-500 hover:text-primary" disabled={callStatus !== null || !ticket?.supportTeamId}>
+              <button
+                onClick={handleVoiceCallClick}
+                className="p-2 text-gray-500 hover:text-primary"
+                disabled={callStatus !== null || !ticket?.supportTeamId}
+              >
                 <PhoneIcon className="w-5 h-5" />
               </button>
               <input
