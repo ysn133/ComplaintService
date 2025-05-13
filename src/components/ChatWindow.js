@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { formatDistanceToNow } from 'date-fns';
-import { PhoneIcon, VideoCameraIcon, ArrowsPointingOutIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { PhoneIcon, ArrowsPointingOutIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
 const ChatWindow = ({ ticket }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [ticketId, setTicketId] = useState(null); // Store ticket ID
+  const [ticketId, setTicketId] = useState(null);
   const stompClientRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const [subscription, setSubscription] = useState(null);
@@ -33,8 +33,8 @@ const ChatWindow = ({ ticket }) => {
   const barDragRef = useRef(null);
   const [isBarDragging, setIsBarDragging] = useState(false);
   const [barDragOffset, setBarDragOffset] = useState({ x: 0, y: 0 });
+  const [uid, setUid] = useState(localStorage.getItem('uid') || null);
 
-  // Retrieve token from URL or localStorage
   const getToken = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = urlParams.get('token');
@@ -47,14 +47,13 @@ const ChatWindow = ({ ticket }) => {
 
   const token = getToken();
 
-  // Decode JWT payload using base64
   const getUserIdFromToken = () => {
     try {
       if (!token) throw new Error('No JWT token available');
       const [, payload] = token.split('.');
       const decodedPayload = atob(payload);
       const parsedPayload = JSON.parse(decodedPayload);
-      return parsedPayload.sub; // Adjust based on your JWT structure
+      return parsedPayload.sub;
     } catch (error) {
       console.error('Client: Error decoding JWT payload:', error);
       return null;
@@ -63,7 +62,6 @@ const ChatWindow = ({ ticket }) => {
 
   const userId = getUserIdFromToken();
 
-  // Log ticket object and store ticket ID when ticket prop changes
   useEffect(() => {
     if (ticket) {
       console.log('Client: Ticket clicked, ticket object:', ticket);
@@ -71,7 +69,6 @@ const ChatWindow = ({ ticket }) => {
         id: ticket.id,
         ticketId: ticket.ticketId,
       });
-      // Store the ticket ID (try 'id' first, then 'ticketId', or adjust based on logs)
       const id = ticket.id || ticket.ticketId || null;
       if (id) {
         console.log('Client: Storing ticket ID:', id);
@@ -160,7 +157,6 @@ const ChatWindow = ({ ticket }) => {
     return pc;
   };
 
-  // WebSocket connection setup
   useEffect(() => {
     if (!token || !userId) {
       console.error('Client: No JWT token or userId available');
@@ -173,18 +169,39 @@ const ChatWindow = ({ ticket }) => {
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
-      debug: (str) => console.log(str),
+      debug: (str) => console.log(`Client: STOMP: ${str}`),
       connectHeaders: { Authorization: `Bearer ${token}` },
+      onStompError: (frame) => console.error('Client: STOMP error:', frame),
+      onWebSocketError: (error) => console.error('Client: WebSocket error:', error),
+      onUnhandledMessage: (message) => console.log('Client: Unhandled STOMP message:', message),
+      onUnhandledFrame: (frame) => console.log('Client: Unhandled STOMP frame:', frame),
     });
 
     client.onConnect = (frame) => {
       console.log('Client: Connected to WebSocket:', frame);
       stompClientRef.current = client;
       setIsConnected(true);
+
+      // Subscribe to UID immediately
+      const uidSub = client.subscribe(`/user/${userId}/uid`, (message) => {
+        try {
+          console.log('Client: Raw UID message:', message.body);
+          const uidMessage = JSON.parse(message.body);
+          console.log('Client: Parsed UID:', uidMessage.uid);
+          if (uidMessage.uid) {
+            setUid(uidMessage.uid);
+            localStorage.setItem('uid', uidMessage.uid);
+            console.log('Client: UID stored successfully:', uidMessage.uid);
+          } else {
+            console.warn('Client: UID message missing uid field:', uidMessage);
+          }
+        } catch (error) {
+          console.error('Client: Error parsing UID message:', error, 'Raw message:', message.body);
+        }
+      });
+      console.log('Client: Subscribed to /user/' + userId + '/uid with sub-id:', uidSub.id);
     };
 
-    client.onStompError = (error) => console.error('Client: WebSocket STOMP error:', error);
-    client.onWebSocketError = (error) => console.error('Client: WebSocket error:', error);
     client.onWebSocketClose = (event) => {
       console.error('Client: WebSocket closed:', event);
       stompClientRef.current = null;
@@ -198,10 +215,49 @@ const ChatWindow = ({ ticket }) => {
     };
   }, [token, userId]);
 
-  // Ticket-specific subscriptions using stored ticketId
+  // Subscribe to messages after UID is received
+  useEffect(() => {
+    if (!isConnected || !stompClientRef.current || !uid) {
+      console.log('Client: Skipping message subscription due to missing requirements', {
+        isConnected,
+        stompClient: !!stompClientRef.current,
+        uid,
+      });
+      return;
+    }
+
+    console.log('Client: Subscribing to messages with UID:', uid);
+    const messageSub = stompClientRef.current.subscribe(`/user/${uid}/messages`, (message) => {
+      try {
+        const receivedMessage = JSON.parse(message.body);
+        console.log('Client: Received WebSocket message:', receivedMessage);
+        if (receivedMessage.ticketId === ticketId) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              ...receivedMessage,
+              content: receivedMessage.message,
+              timestamp: receivedMessage.createdAt,
+            },
+          ]);
+        }
+      } catch (error) {
+        console.error('Client: Error parsing message:', error);
+      }
+    });
+    setSubscription(messageSub);
+
+    return () => {
+      if (messageSub) {
+        messageSub.unsubscribe();
+        setSubscription(null);
+      }
+    };
+  }, [isConnected, uid, ticketId]);
+
   useEffect(() => {
     if (!isConnected || !stompClientRef.current || !ticketId) {
-      console.log('Client: Skipping subscriptions due to missing requirements', {
+      console.log('Client: Skipping call subscriptions due to missing requirements', {
         isConnected,
         stompClient: !!stompClientRef.current,
         ticketId,
@@ -209,9 +265,8 @@ const ChatWindow = ({ ticket }) => {
       return;
     }
 
-    console.log('Client: Setting up subscriptions for ticket ID:', ticketId);
+    console.log('Client: Setting up call subscriptions for ticket ID:', ticketId);
 
-    // Call-related subscriptions
     const callSub = stompClientRef.current.subscribe(`/user/${userId}/ticket/${ticketId}/call/response`, (message) => {
       const response = JSON.parse(message.body);
       console.log('Client: Received call response for ticket ID:', ticketId, response);
@@ -255,21 +310,6 @@ const ChatWindow = ({ ticket }) => {
 
     setCallSubscription({ callSub, signalSub, endSub });
 
-    // Message subscription
-    const ticketSub = stompClientRef.current.subscribe(`/topic/ticket/${ticketId}`, (message) => {
-      const receivedMessage = JSON.parse(message.body);
-      setMessages((prev) => [
-        ...prev,
-        {
-          ...receivedMessage,
-          content: receivedMessage.message,
-          timestamp: receivedMessage.createdAt,
-        },
-      ]);
-    });
-
-    setSubscription(ticketSub);
-
     return () => {
       if (callSubscription) {
         callSubscription.callSub?.unsubscribe();
@@ -277,14 +317,9 @@ const ChatWindow = ({ ticket }) => {
         callSubscription.endSub?.unsubscribe();
         setCallSubscription(null);
       }
-      if (subscription) {
-        subscription.unsubscribe();
-        setSubscription(null);
-      }
     };
   }, [isConnected, ticketId]);
 
-  // Fetch messages
   useEffect(() => {
     const fetchMessages = async () => {
       if (!ticketId || !token) {
@@ -360,10 +395,10 @@ const ChatWindow = ({ ticket }) => {
   };
 
   const sendMessage = () => {
-    if (newMessage.trim() && stompClientRef.current && ticketId && userId) {
+    if (newMessage.trim() && stompClientRef.current && ticketId && userId && uid) {
       console.log('Client: Sending message for ticket ID:', ticketId);
       stompClientRef.current.publish({
-        destination: `/app/ticket/${ticketId}/sendMessage`,
+        destination: `/app/messages/${uid}`,
         body: JSON.stringify({
           ticketId: ticketId,
           message: newMessage,
@@ -787,7 +822,7 @@ const ChatWindow = ({ ticket }) => {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => setShowPreview(!showPreview)}
-                          className="flex-1 py-2 rounded-lg text-sm font-medium bg-blue-500 hover:bg-blue-600 transition"
+                          className="flex-1 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 transition"
                         >
                           {showPreview ? 'Hide Preview' : 'Show Preview'}
                         </button>
@@ -808,7 +843,7 @@ const ChatWindow = ({ ticket }) => {
                         step="0.1"
                         value={volume}
                         onChange={handleVolumeChange}
-                        className="w-full accent-blue-500"
+                        className="w-full accent-blue-600"
                       />
                     </div>
                     <button

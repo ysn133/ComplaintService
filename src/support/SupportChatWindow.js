@@ -11,7 +11,7 @@ const SupportChatWindow = ({ ticket }) => {
   const [ticketStatus, setTicketStatus] = useState(ticket?.status || 'Open');
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState(ticket?.status || 'Open');
-  const [ticketId, setTicketId] = useState(null); // Store ticket ID
+  const [ticketId, setTicketId] = useState(null);
   const stompClientRef = useRef(null);
   const [subscription, setSubscription] = useState(null);
   const [callSubscription, setCallSubscription] = useState(null);
@@ -43,8 +43,9 @@ const SupportChatWindow = ({ ticket }) => {
   const [isResizing, setIsResizing] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [barDragOffset, setBarDragOffset] = useState({ x: 0, y: 0 });
+  const [uid, setUid] = useState(localStorage.getItem('supportUid') || null);
+  const [isConnected, setIsConnected] = useState(false);
 
-  // Retrieve token from URL or localStorage
   const getToken = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = urlParams.get('token');
@@ -57,7 +58,6 @@ const SupportChatWindow = ({ ticket }) => {
 
   const token = getToken();
 
-  // Extract support ID from JWT token
   const getSupportIdFromToken = () => {
     if (!token) {
       console.error('Support: No JWT token available');
@@ -70,14 +70,15 @@ const SupportChatWindow = ({ ticket }) => {
         return null;
       }
       const payload = JSON.parse(atob(tokenParts[1]));
-      return payload.userId; // Adjust based on your JWT structure
+      return payload.userId;
     } catch (error) {
       console.error('Support: Error parsing JWT token:', error);
       return null;
     }
   };
 
-  // Log ticket object and store ticket ID when ticket prop changes
+  const supportId = getSupportIdFromToken();
+
   useEffect(() => {
     if (ticket) {
       console.log('Support: Ticket clicked, ticket object:', ticket);
@@ -85,7 +86,6 @@ const SupportChatWindow = ({ ticket }) => {
         id: ticket.id,
         ticketId: ticket.ticketId,
       });
-      // Store the ticket ID (try 'id' first, then 'ticketId', or adjust based on logs)
       const id = ticket.id || ticket.ticketId || null;
       if (id) {
         console.log('Support: Storing ticket ID:', id);
@@ -115,7 +115,7 @@ const SupportChatWindow = ({ ticket }) => {
             callId: callIdRef.current,
             type: 'ice-candidate',
             data: JSON.stringify(event.candidate),
-            fromUserId: getSupportIdFromToken(),
+            fromUserId: supportId,
             toUserId: callerIdRef.current,
           }),
         });
@@ -184,10 +184,9 @@ const SupportChatWindow = ({ ticket }) => {
     return pc;
   };
 
-  // WebSocket connection setup
   useEffect(() => {
-    if (!token) {
-      console.error('Support: No JWT token available');
+    if (!token || !supportId) {
+      console.error('Support: No JWT token or supportId available');
       return;
     }
 
@@ -197,13 +196,32 @@ const SupportChatWindow = ({ ticket }) => {
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
-      debug: (str) => console.log(str),
+      debug: (str) => console.log(`Support: STOMP: ${str}`),
       connectHeaders: { Authorization: `Bearer ${token}` },
     });
 
     client.onConnect = (frame) => {
       console.log('Support: Connected to WebSocket:', frame);
       stompClientRef.current = client;
+      setIsConnected(true);
+
+      const uidSub = client.subscribe(`/user/${supportId}/uid`, (message) => {
+        try {
+          console.log('Support: Raw UID message:', message.body);
+          const uidMessage = JSON.parse(message.body);
+          console.log('Support: Parsed UID:', uidMessage.uid);
+          if (uidMessage.uid) {
+            setUid(uidMessage.uid);
+            localStorage.setItem('supportUid', uidMessage.uid);
+            console.log('Support: UID stored successfully:', uidMessage.uid);
+          } else {
+            console.warn('Support: UID message missing uid field:', uidMessage);
+          }
+        } catch (error) {
+          console.error('Support: Error parsing UID message:', error, 'Raw message:', message.body);
+        }
+      });
+      console.log('Support: Subscribed to /user/' + supportId + '/uid with sub-id:', uidSub.id);
     };
 
     client.onStompError = (error) => console.error('Support: WebSocket STOMP error:', error);
@@ -211,6 +229,7 @@ const SupportChatWindow = ({ ticket }) => {
     client.onWebSocketClose = (event) => {
       console.error('Support: WebSocket closed:', event);
       stompClientRef.current = null;
+      setIsConnected(false);
     };
 
     client.activate();
@@ -218,24 +237,26 @@ const SupportChatWindow = ({ ticket }) => {
     return () => {
       if (client) client.deactivate();
     };
-  }, [token]);
+  }, [token, supportId]);
 
-  // Ticket-specific subscriptions using stored ticketId
   useEffect(() => {
-    if (!stompClientRef.current || !ticketId) {
+    if (!isConnected || !stompClientRef.current || !ticketId || !uid) {
       console.log('Support: Skipping subscriptions due to missing requirements', {
+        isConnected,
         stompClient: !!stompClientRef.current,
         ticketId,
+        uid,
       });
       return;
     }
 
     console.log('Support: Setting up subscriptions for ticket ID:', ticketId);
 
-    const supportId = getSupportIdFromToken();
-    if (!supportId) {
-      console.error('Support: Failed to extract supportId from token');
-      return;
+    // Clean up any existing subscription to prevent duplicates
+    if (subscription) {
+      console.log('Support: Unsubscribing existing message subscription');
+      subscription.unsubscribe();
+      setSubscription(null);
     }
 
     const callSub = stompClientRef.current.subscribe(`/user/${supportId}/ticket/${ticketId}/call/incoming`, (message) => {
@@ -274,13 +295,18 @@ const SupportChatWindow = ({ ticket }) => {
 
     setCallSubscription({ callSub, signalSub, responseSub, endSub });
 
-    const newSubscription = stompClientRef.current.subscribe(`/topic/ticket/${ticketId}`, (message) => {
+    const newSubscription = stompClientRef.current.subscribe(`/user/${uid}/messages`, (message) => {
       const receivedMessage = JSON.parse(message.body);
-      console.log('Support: Received WebSocket message for ticket ID:', ticketId, receivedMessage);
-      setMessages((prev) => [
-        ...prev,
-        { ...receivedMessage, content: receivedMessage.message, timestamp: receivedMessage.createdAt },
-      ]);
+      console.log('Support: Received WebSocket message:', receivedMessage, 'Current ticketId:', ticketId);
+      if (receivedMessage.ticketId === ticketId) {
+        console.log('Support: Message matches selected ticket ID:', ticketId);
+        setMessages((prev) => [
+          ...prev,
+          { ...receivedMessage, content: receivedMessage.message, timestamp: receivedMessage.createdAt },
+        ]);
+      } else {
+        console.warn('Support: Ignoring message for non-selected ticket ID:', receivedMessage.ticketId, 'Selected:', ticketId);
+      }
     });
     setSubscription(newSubscription);
 
@@ -292,14 +318,13 @@ const SupportChatWindow = ({ ticket }) => {
         callSubscription.endSub?.unsubscribe();
         setCallSubscription(null);
       }
-      if (subscription) {
-        subscription.unsubscribe();
+      if (newSubscription) {
+        newSubscription.unsubscribe();
         setSubscription(null);
       }
     };
-  }, [ticketId]);
+  }, [isConnected, ticketId, uid]);
 
-  // Fetch messages
   useEffect(() => {
     const fetchMessages = async () => {
       if (ticketId && token) {
@@ -383,10 +408,10 @@ const SupportChatWindow = ({ ticket }) => {
   };
 
   const sendMessage = () => {
-    if (newMessage.trim() && stompClientRef.current && ticketId) {
+    if (newMessage.trim() && stompClientRef.current && ticketId && uid) {
       console.log('Support: Sending message for ticket ID:', ticketId);
       stompClientRef.current.publish({
-        destination: `/app/ticket/${ticketId}/sendMessage`,
+        destination: `/app/messages/${uid}`,
         body: JSON.stringify({
           ticketId: ticketId,
           message: newMessage,
@@ -469,7 +494,7 @@ const SupportChatWindow = ({ ticket }) => {
             callId: callIdRef.current,
             type: 'answer',
             data: JSON.stringify(answer),
-            fromUserId: getSupportIdFromToken(),
+            fromUserId: supportId,
             toUserId: callerIdRef.current,
           }),
         });
