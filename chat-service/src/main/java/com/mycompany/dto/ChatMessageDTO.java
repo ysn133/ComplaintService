@@ -7,6 +7,7 @@ public class ChatMessageDTO {
     private String message;
     private String createdAt;
     private String jwtToken; // New field to hold the JWT token
+     private String uid;
 
     // Getters and Setters
     public Long getTicketId() {
@@ -56,4 +57,13 @@ public class ChatMessageDTO {
     public void setJwtToken(String jwtToken) {
         this.jwtToken = jwtToken;
     }
+
+      public String getUid() {
+        return uid;
+    }
+
+    public void setUid(String uid) {
+        this.uid = uid;
+    }
+    
 }

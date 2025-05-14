@@ -6,6 +6,7 @@ public class WebRTCSignalDTO {
     private String data; // SDP or ICE candidate data
     private Long fromUserId;
     private Long toUserId;
+    private String toUserType; // "CLIENT" or "SUPPORT"
 
     // Getters and setters
     public String getCallId() {
@@ -46,5 +47,13 @@ public class WebRTCSignalDTO {
 
     public void setToUserId(Long toUserId) {
         this.toUserId = toUserId;
+    }
+
+    public String getToUserType() {
+        return toUserType;
+    }
+
+    public void setToUserType(String toUserType) {
+        this.toUserType = toUserType;
     }
 }
