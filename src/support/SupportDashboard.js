@@ -38,13 +38,13 @@ const SupportDashboard = () => {
         });
         console.log('SupportDashboard: API response for tickets:', response.data);
         const ticketsData = Array.isArray(response.data.tickets) ? response.data.tickets.map(ticket => ({
-          ...ticket,
-          lastMessageTime: ticket.lastMessageTime || ticket.createdAt || new Date().toISOString(),
+          id: ticket.id,
           subject: ticket.title || ticket.subject || 'No Subject',
-          unreadCount: ticket.messageCount || 0,
-          category: ticket.category || 'General',
+          category: ticket.categoryId === 1 ? 'Technical' : ticket.categoryId === 2 ? 'Billing' : 'General',
           priority: ticket.priority || 'Low',
           status: ticket.status || 'Open',
+          unreadCount: ticket.messageCount || 0,
+          lastMessageTime: ticket.lastMessageTime || ticket.createdAt || new Date().toISOString(),
         })) : [];
         console.log('SupportDashboard: Parsed tickets:', ticketsData);
         setTickets(ticketsData);
@@ -58,6 +58,20 @@ const SupportDashboard = () => {
 
     fetchTickets();
   }, [token]);
+
+  // Handle new ticket received from SupportChatWindow
+  const handleTicketReceived = (newTicket) => {
+    console.log('SupportDashboard: Received new ticket:', newTicket);
+    setTickets((prev) => {
+      if (prev.some((t) => t.id === newTicket.id)) {
+        console.log('SupportDashboard: Ticket already exists, skipping:', newTicket.id);
+        return prev;
+      }
+      const updatedTickets = [newTicket, ...prev];
+      console.log('SupportDashboard: Updated tickets:', updatedTickets);
+      return updatedTickets;
+    });
+  };
 
   const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId);
 
@@ -88,7 +102,10 @@ const SupportDashboard = () => {
             onSelectTicket={setSelectedTicketId}
           />
         )}
-        <SupportChatWindow ticket={selectedTicket} />
+        <SupportChatWindow
+          ticket={selectedTicket}
+          onTicketReceived={handleTicketReceived}
+        />
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import { PhoneIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, ChevronDownIcon
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
-const SupportChatWindow = ({ ticket }) => {
+const SupportChatWindow = ({ ticket, onTicketReceived, onMarkAsRead }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [ticketStatus, setTicketStatus] = useState(ticket?.status || 'Open');
@@ -15,6 +15,7 @@ const SupportChatWindow = ({ ticket }) => {
   const stompClientRef = useRef(null);
   const [subscription, setSubscription] = useState(null);
   const [callSubscription, setCallSubscription] = useState(null);
+  const [topicSubscription, setTopicSubscription] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
   const callIdRef = useRef(null);
   const callerIdRef = useRef(null);
@@ -90,6 +91,9 @@ const SupportChatWindow = ({ ticket }) => {
       if (id) {
         console.log('Support: Storing ticket ID:', id);
         setTicketId(id);
+        if (ticket.isNew && onMarkAsRead) {
+          onMarkAsRead(id);
+        }
       } else {
         console.warn('Support: No valid ticket ID found in ticket object');
         setTicketId(null);
@@ -98,7 +102,7 @@ const SupportChatWindow = ({ ticket }) => {
       console.log('Support: No ticket selected');
       setTicketId(null);
     }
-  }, [ticket]);
+  }, [ticket, onMarkAsRead]);
 
   const initializePeerConnection = async () => {
     const pc = new RTCPeerConnection({
@@ -107,7 +111,7 @@ const SupportChatWindow = ({ ticket }) => {
     console.log('Support: PeerConnection initialized');
 
     pc.onicecandidate = (event) => {
-      if (event.candidate && stompClientRef.current && callIdRef.current && callerIdRef.current) {
+      if (event.candidate && stompClientRef.current?.active && callIdRef.current && callerIdRef.current) {
         console.log('Support: Sending ICE candidate to clientId:', callerIdRef.current);
         stompClientRef.current.publish({
           destination: `/app/call/${callIdRef.current}/signal`,
@@ -222,28 +226,65 @@ const SupportChatWindow = ({ ticket }) => {
         }
       });
       console.log('Support: Subscribed to /user/' + supportId + '/uid with sub-id:', uidSub.id);
+
+      const topicSub = client.subscribe(`/topic/tickets/created`, (message) => {
+        try {
+          const notification = JSON.parse(message.body);
+          console.log('Support: Received topic ticket creation:', notification);
+          if (notification.ticket?.id && notification.ticket.supportTeamId == supportId) {
+            const newTicket = {
+              id: notification.ticket.id,
+              subject: notification.ticket.title,
+              category: notification.ticket.categoryId === 1 ? 'Technical' : notification.ticket.categoryId === 2 ? 'Billing' : 'General',
+              priority: notification.ticket.priority,
+              status: notification.ticket.status,
+              unreadCount: 0,
+              lastMessageTime: null,
+              isNew: true,
+            };
+            if (onTicketReceived) {
+              onTicketReceived(newTicket);
+              console.log('Support: Notified parent of topic ticket:', notification.ticket.id);
+            }
+          } else {
+            console.warn('Support: Invalid or irrelevant topic ticket notification:', notification);
+          }
+        } catch (error) {
+          console.error('Support: Error parsing topic ticket notification:', error, 'Raw message:', message.body);
+        }
+      });
+      console.log('Support: Subscribed to /topic/tickets/created with sub-id:', topicSub.id);
+      setTopicSubscription(topicSub);
     };
 
     client.onStompError = (error) => console.error('Support: WebSocket STOMP error:', error);
     client.onWebSocketError = (error) => console.error('Support: WebSocket error:', error);
     client.onWebSocketClose = (event) => {
       console.error('Support: WebSocket closed:', event);
-      stompClientRef.current = null;
       setIsConnected(false);
+      setTopicSubscription(null);
     };
 
     client.activate();
 
     return () => {
-      if (client) client.deactivate();
+      if (client && client.active) {
+        console.log('Support: Deactivating STOMP client on cleanup');
+        client.deactivate();
+      }
+      if (topicSubscription) {
+        console.log('Support: Unsubscribing topic subscription on cleanup');
+        topicSubscription.unsubscribe();
+        setTopicSubscription(null);
+      }
     };
-  }, [token, supportId]);
+  }, [token, supportId, onTicketReceived]);
 
-  useEffect(() => {
-    if (!isConnected || !stompClientRef.current || !ticketId || !uid) {
-      console.log('Support: Skipping subscriptions due to missing requirements', {
+  const setupSubscriptions = () => {
+    if (!isConnected || !stompClientRef.current?.active || !ticketId || !uid) {
+      console.log('Support: Cannot setup subscriptions, requirements missing:', {
         isConnected,
-        stompClient: !!stompClientRef.current,
+        stompClientActive: !!stompClientRef.current?.active,
         ticketId,
         uid,
       });
@@ -252,11 +293,18 @@ const SupportChatWindow = ({ ticket }) => {
 
     console.log('Support: Setting up subscriptions for ticket ID:', ticketId);
 
-    // Clean up any existing subscription to prevent duplicates
     if (subscription) {
       console.log('Support: Unsubscribing existing message subscription');
       subscription.unsubscribe();
       setSubscription(null);
+    }
+    if (callSubscription) {
+      console.log('Support: Unsubscribing existing call subscriptions');
+      callSubscription.callSub?.unsubscribe();
+      callSubscription.signalSub?.unsubscribe();
+      callSubscription.responseSub?.unsubscribe();
+      callSubscription.endSub?.unsubscribe();
+      setCallSubscription(null);
     }
 
     const callSub = stompClientRef.current.subscribe(`/user/${supportId}/ticket/${ticketId}/call/incoming`, (message) => {
@@ -309,18 +357,33 @@ const SupportChatWindow = ({ ticket }) => {
       }
     });
     setSubscription(newSubscription);
+  };
+
+  useEffect(() => {
+    if (isConnected && stompClientRef.current?.active && ticketId && uid) {
+      setupSubscriptions();
+    } else {
+      console.log('Support: Delaying subscriptions until connection is ready:', {
+        isConnected,
+        stompClientActive: !!stompClientRef.current?.active,
+        ticketId,
+        uid,
+      });
+    }
 
     return () => {
+      if (subscription) {
+        console.log('Support: Unsubscribing message subscription on cleanup');
+        subscription.unsubscribe();
+        setSubscription(null);
+      }
       if (callSubscription) {
+        console.log('Support: Unsubscribing call subscriptions on cleanup');
         callSubscription.callSub?.unsubscribe();
         callSubscription.signalSub?.unsubscribe();
         callSubscription.responseSub?.unsubscribe();
         callSubscription.endSub?.unsubscribe();
         setCallSubscription(null);
-      }
-      if (newSubscription) {
-        newSubscription.unsubscribe();
-        setSubscription(null);
       }
     };
   }, [isConnected, ticketId, uid]);
@@ -408,7 +471,7 @@ const SupportChatWindow = ({ ticket }) => {
   };
 
   const sendMessage = () => {
-    if (newMessage.trim() && stompClientRef.current && ticketId && uid) {
+    if (newMessage.trim() && stompClientRef.current?.active && ticketId && uid) {
       console.log('Support: Sending message for ticket ID:', ticketId);
       stompClientRef.current.publish({
         destination: `/app/messages/${uid}`,
@@ -419,11 +482,13 @@ const SupportChatWindow = ({ ticket }) => {
         }),
       });
       setNewMessage('');
+    } else {
+      console.warn('Support: Cannot send message, STOMP client not active or missing requirements');
     }
   };
 
   const handleAcceptCall = async () => {
-    if (!stompClientRef.current || !callIdRef.current) {
+    if (!stompClientRef.current?.active || !callIdRef.current) {
       console.error('Support: Cannot accept call: missing stompClient or callId');
       return;
     }
@@ -449,7 +514,7 @@ const SupportChatWindow = ({ ticket }) => {
   };
 
   const handleRejectCall = () => {
-    if (stompClientRef.current && callIdRef.current) {
+    if (stompClientRef.current?.active && callIdRef.current) {
       console.log('Support: Rejecting call for ticket ID:', ticketId);
       stompClientRef.current.publish({
         destination: `/app/call/${callIdRef.current}/respond`,
@@ -488,17 +553,19 @@ const SupportChatWindow = ({ ticket }) => {
           return;
         }
 
-        stompClientRef.current.publish({
-          destination: `/app/call/${callIdRef.current}/signal`,
-          body: JSON.stringify({
-            callId: callIdRef.current,
-            type: 'answer',
-            data: JSON.stringify(answer),
-            fromUserId: supportId,
-            toUserId: callerIdRef.current,
-          }),
-        });
-        console.log('Support: Sent answer to clientId:', callerIdRef.current);
+        if (stompClientRef.current?.active) {
+          stompClientRef.current.publish({
+            destination: `/app/call/${callIdRef.current}/signal`,
+            body: JSON.stringify({
+              callId: callIdRef.current,
+              type: 'answer',
+              data: JSON.stringify(answer),
+              fromUserId: supportId,
+              toUserId: callerIdRef.current,
+            }),
+          });
+          console.log('Support: Sent answer to clientId:', callerIdRef.current);
+        }
       } else if (signal.type === 'ice-candidate') {
         const candidate = new RTCIceCandidate(JSON.parse(signal.data));
         await peerConnectionRef.current.addIceCandidate(candidate);
@@ -536,7 +603,7 @@ const SupportChatWindow = ({ ticket }) => {
   };
 
   const handleHangUp = () => {
-    if (stompClientRef.current && callIdRef.current) {
+    if (stompClientRef.current?.active && callIdRef.current) {
       console.log('Support: Hanging up call for ticket ID:', ticketId);
       stompClientRef.current.publish({
         destination: `/app/call/${callIdRef.current}/end`,
@@ -787,7 +854,7 @@ const SupportChatWindow = ({ ticket }) => {
 
           {incomingCall && !callStatus && (
             <div className="fixed inset-0 flex items-center justify-center z-70 bg-black bg-opacity-50 backdrop-blur-sm">
-              <div className="bg-gray-900 text-white p-6 rounded-xl shadow-2xl w-96 transform transition-all duration-300 scale-100">
+              <div className="bg-gray-900 text-white p-6 rounded-xl shadow-2xl w-96 transform transition-all duration-200 scale-100">
                 <h3 className="text-lg font-bold mb-3">Incoming Call</h3>
                 <p className="text-sm text-gray-400 mb-4">Ticket #{ticketId}</p>
                 <div className="flex space-x-2">
@@ -810,7 +877,7 @@ const SupportChatWindow = ({ ticket }) => {
 
           {callStatus && !isMinimized && (
             <div className="fixed inset-0 flex items-center justify-center z-70 bg-black bg-opacity-50 backdrop-blur-sm">
-              <div className="bg-gray-900 text-white p-6 rounded-xl shadow-2xl w-96 transform transition-all duration-300 scale-100">
+              <div className="bg-gray-900 text-white p-6 rounded-xl shadow-2xl w-96 transform transition-all duration-200 scale-100">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-bold">Call with Client</h3>
                   <div className="flex space-x-2">
@@ -893,7 +960,7 @@ const SupportChatWindow = ({ ticket }) => {
           {callStatus && isMinimized && (
             <div
               ref={barDragRef}
-              className="fixed bg-gray-700 text-white rounded-lg shadow-lg z-50 flex items-center justify-between px-4 py-2 w-64 transition-all duration-300"
+              className="fixed bg-gray-700 text-white rounded-lg shadow-lg z-50 flex items-center justify-between px-4 py-2 w-64 transition-all duration-200"
               style={{ left: `${barPosition.x}px`, top: `${barPosition.y}px` }}
               onMouseDown={handleBarDragStart}
             >
@@ -914,7 +981,7 @@ const SupportChatWindow = ({ ticket }) => {
           {isScreenSharing && !isVideoMinimized && (
             <div
               ref={dragRef}
-              className="fixed bg-gray-800 rounded-lg shadow-xl z-50 overflow-hidden transition-all duration-300"
+              className="fixed bg-gray-800 rounded-lg shadow-xl z-50 overflow-hidden transition-all duration-200"
               style={{ left: `${videoPosition.x}px`, top: `${videoPosition.y}px`, width: `${videoSize.width}px`, height: `${videoSize.height + 40}px` }}
             >
               <div
