@@ -2,7 +2,7 @@ package com.mycompany.config;
 
 import com.mycompany.util.JwtUtil;
 import io.jsonwebtoken.Claims;
-import jakarta.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
@@ -23,17 +23,14 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
             ServletServerHttpRequest servletRequest = (ServletServerHttpRequest) request;
             HttpServletRequest httpRequest = servletRequest.getServletRequest();
 
-            // Extract JWT token from the Authorization header
             String authHeader = httpRequest.getHeader("Authorization");
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
                 try {
-                    // Validate token and extract claims using JwtUtil
                     Claims claims = JwtUtil.validateToken(token);
                     String userId = claims.get("userId").toString();
                     attributes.put("userId", userId);
 
-                    // Set the user principal for user-specific messaging
                     Principal principal = new Principal() {
                         @Override
                         public String getName() {
@@ -44,7 +41,6 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
                     attributes.put("simpUser", principal);
                     return true;
                 } catch (Exception e) {
-                    // Invalid token
                     return false;
                 }
             }

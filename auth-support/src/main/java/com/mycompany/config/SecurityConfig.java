@@ -22,14 +22,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/login", "/error").permitAll()
-                .requestMatchers("/api/supports/me").authenticated() // Allow authenticated users
-                .requestMatchers("/api/supports", "/api/supports/**").hasRole("ADMIN") // Keep ADMIN for others
+            .csrf().disable()
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            .and()
+            .authorizeRequests()
+                .antMatchers("/api/auth/login", "/error").permitAll()
+                .antMatchers("/api/supports/me").authenticated()
+                .antMatchers("/api/supports", "/api/supports/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
-            )
+            .and()
             .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

@@ -1,3 +1,4 @@
+
 package com.mycompany.config;
 
 import com.mycompany.util.JwtUtil;
@@ -22,13 +23,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/login", "/error").permitAll()
-                .requestMatchers("/api/admin", "/api/admin/me").hasRole("ADMIN")
+            .csrf().disable()
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            .and()
+            .authorizeRequests()
+                .antMatchers("/api/auth/login", "/error").permitAll()
+                .antMatchers("/api/admin", "/api/admin/me").hasRole("ADMIN")
                 .anyRequest().authenticated()
-            )
+            .and()
             .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
