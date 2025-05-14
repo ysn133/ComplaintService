@@ -1,10 +1,16 @@
 package com.mycompany.entity;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 
 public class TicketDTO {
+
+    private Long id;
+
+    private Long clientId;
+
+    private Long supportTeamId;
 
     @NotNull(message = "Category ID is required")
     private Long categoryId;
@@ -20,7 +26,33 @@ public class TicketDTO {
     @NotBlank(message = "Priority is required")
     private String priority;
 
+    private String status;
+
     // Getters and Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(Long clientId) {
+        this.clientId = clientId;
+    }
+
+    public Long getSupportTeamId() {
+        return supportTeamId;
+    }
+
+    public void setSupportTeamId(Long supportTeamId) {
+        this.supportTeamId = supportTeamId;
+    }
+
     public Long getCategoryId() {
         return categoryId;
     }
@@ -51,5 +83,13 @@ public class TicketDTO {
 
     public void setPriority(String priority) {
         this.priority = priority;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

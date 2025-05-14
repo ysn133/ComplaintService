@@ -7,13 +7,14 @@ import com.mycompany.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
+import javax.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,17 +35,38 @@ public class TicketController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
     @PostMapping("/ticket")
-    public ResponseEntity<Map<String, Object>> createTicket(@RequestBody @Valid TicketDTO ticketDTO) {
+    public ResponseEntity<Map<String, Object>> createTicket(
+            @RequestBody @Valid TicketDTO ticketDTO,
+            @RequestHeader("Authorization") String authorizationHeader) {
         logger.debug("Processing createTicket request");
         Map<String, Object> response = new HashMap<>();
         try {
             Long clientId = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             Ticket ticket = ticketService.createTicket(ticketDTO, clientId);
+            ticketDTO.setId(ticket.getId());
+            ticketDTO.setClientId(clientId);
+            ticketDTO.setSupportTeamId(ticket.getSupportTeamId());
+            ticketDTO.setStatus(ticket.getStatus());
             response.put("status", "SUCCESS");
             response.put("ticketId", ticket.getId());
             response.put("ticket", ticket);
             logger.info("Created ticket with id: {} for client id: {}", ticket.getId(), clientId);
+
+            // Notify chat service via WebSocket
+            try {
+                Map<String, Object> message = new HashMap<>();
+                message.put("ticket", ticketDTO);
+                message.put("jwtToken", authorizationHeader);
+                messagingTemplate.convertAndSend("/topic/tickets/created", message);
+                logger.info("Notified chat service via WebSocket for ticket id: {}", ticket.getId());
+            } catch (Exception e) {
+                logger.error("Failed to notify chat service via WebSocket for ticket id: {}: {}", ticket.getId(), e.getMessage());
+            }
+
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalStateException e) {
             response.put("status", "ERROR");
