@@ -4,29 +4,53 @@ import Sidebar from '../components/Sidebar';
 import ChatWindow from '../components/ChatWindow';
 
 const Dashboard = () => {
-  // Mock ticket data since the backend ticket service isn't ready
-  const [tickets] = useState([
-    {
-      id: 1,
-      subject: 'Order Issue',
-      lastMessageTime: '2025-04-06T02:00:00', // Latest message timestamp
-      unreadCount: 2, // 2 unread messages from CLIENT
-    },
-  ]);
-  const [selectedTicketId, setSelectedTicketId] = useState(null);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [tickets, setTickets] = useState([]);
 
-  const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId);
+ 
+  const handleNewMessage = (ticketId) => {
+    if (selectedTicket?.id !== ticketId) {
+      setTickets((prevTickets) => {
+        const updatedTickets = prevTickets.map((ticket) =>
+          ticket.id === ticketId
+            ? { ...ticket, unreadCount: (ticket.unreadCount || 0) + 1 }
+            : ticket
+        );
+   
+        const ticketIndex = updatedTickets.findIndex((ticket) => ticket.id === ticketId);
+        if (ticketIndex !== -1) {
+          const [movedTicket] = updatedTickets.splice(ticketIndex, 1);
+          return [movedTicket, ...updatedTickets];
+        }
+        return updatedTickets;
+      });
+    }
+  };
+
+
+  const onSelectTicket = (ticket) => {
+    setSelectedTicket(ticket);
+    setTickets((prevTickets) =>
+      prevTickets.map((t) =>
+        t.id === ticket.id ? { ...t, unreadCount: 0 } : t
+      )
+    );
+  };
 
   return (
     <div className="flex flex-col h-screen bg-light-bg dark:bg-dark-bg">
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
+          selectedTicketId={selectedTicket?.id}
+          onSelectTicket={onSelectTicket}
           tickets={tickets}
-          selectedTicketId={selectedTicketId}
-          onSelectTicket={setSelectedTicketId}
+          setTickets={setTickets}
         />
-        <ChatWindow ticket={selectedTicket} />
+        <ChatWindow
+          ticket={selectedTicket}
+          onNewMessage={handleNewMessage}
+        />
       </div>
     </div>
   );

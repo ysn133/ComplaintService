@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import SupportTicketItem from './SupportTicketItem';
 
-const SupportSidebar = ({ tickets, selectedTicketId, onSelectTicket }) => {
+const SupportSidebar = ({ tickets, selectedTicketId, onSelectTicket, onMarkAsRead }) => {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
   const [timeFilter, setTimeFilter] = useState('Newest');
@@ -14,15 +14,18 @@ const SupportSidebar = ({ tickets, selectedTicketId, onSelectTicket }) => {
     .filter((ticket) => categoryFilter === 'All' || ticket.category === categoryFilter)
     .filter((ticket) => priorityFilter === 'All' || ticket.priority === priorityFilter)
     .sort((a, b) => {
-      const dateA = new Date(a.lastMessageTime);
-      const dateB = new Date(b.lastMessageTime);
+      if (a.isNew && !b.isNew) return -1;
+      if (!a.isNew && b.isNew) return 1;
+      const dateA = new Date(a.lastMessageTime || '1970-01-01');
+      const dateB = new Date(b.lastMessageTime || '1970-01-01');
       return timeFilter === 'Newest' ? dateB - dateA : dateA - dateB;
     });
+
+  console.log('Sidebar: Sorted tickets:', filteredTickets.map(t => ({ id: t.id, isNew: t.isNew })));
 
   return (
     <div className="w-80 bg-gray-200 dark:bg-gray-700 h-full p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400">
       <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Support Tickets</h2>
-      {/* Category Filter */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
         <div className="flex flex-wrap gap-2">
@@ -41,7 +44,6 @@ const SupportSidebar = ({ tickets, selectedTicketId, onSelectTicket }) => {
           ))}
         </div>
       </div>
-      {/* Priority Filter */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Priority</label>
         <div className="flex flex-wrap gap-2">
@@ -60,7 +62,6 @@ const SupportSidebar = ({ tickets, selectedTicketId, onSelectTicket }) => {
           ))}
         </div>
       </div>
-      {/* Time Filter */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sort by Time</label>
         <div className="flex flex-wrap gap-2">
@@ -79,7 +80,6 @@ const SupportSidebar = ({ tickets, selectedTicketId, onSelectTicket }) => {
           ))}
         </div>
       </div>
-      {/* Ticket List */}
       {filteredTickets.length === 0 ? (
         <p className="text-gray-500 dark:text-gray-400">No tickets available.</p>
       ) : (
@@ -89,6 +89,7 @@ const SupportSidebar = ({ tickets, selectedTicketId, onSelectTicket }) => {
             ticket={ticket}
             isSelected={selectedTicketId === ticket.id}
             onSelect={() => onSelectTicket(ticket.id)}
+            onMarkAsRead={onMarkAsRead}
           />
         ))
       )}
