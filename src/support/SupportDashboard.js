@@ -45,6 +45,7 @@ const SupportDashboard = () => {
           status: ticket.status || 'Open',
           unreadCount: ticket.messageCount || 0,
           lastMessageTime: ticket.lastMessageTime || ticket.createdAt || new Date().toISOString(),
+          isNew: ticket.isNew || false,
         })) : [];
         console.log('SupportDashboard: Parsed tickets:', ticketsData);
         setTickets(ticketsData);
@@ -71,6 +72,28 @@ const SupportDashboard = () => {
       console.log('SupportDashboard: Updated tickets:', updatedTickets);
       return updatedTickets;
     });
+  };
+
+  // Handle new message for unselected ticket
+  const handleNewMessage = (ticketId) => {
+    console.log('SupportDashboard: New message for ticket ID:', ticketId);
+    setTickets((prevTickets) =>
+      prevTickets.map((ticket) =>
+        ticket.id === ticketId
+          ? { ...ticket, unreadCount: (ticket.unreadCount || 0) + 1, lastMessageTime: new Date().toISOString() }
+          : ticket
+      )
+    );
+  };
+
+  // Handle marking ticket as read
+  const handleMarkAsRead = (ticketId) => {
+    console.log('SupportDashboard: Marking ticket as read:', ticketId);
+    setTickets((prevTickets) =>
+      prevTickets.map((ticket) =>
+        ticket.id === ticketId ? { ...ticket, isNew: false, unreadCount: 0 } : ticket
+      )
+    );
   };
 
   const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId);
@@ -100,11 +123,14 @@ const SupportDashboard = () => {
             tickets={tickets}
             selectedTicketId={selectedTicketId}
             onSelectTicket={setSelectedTicketId}
+            onMarkAsRead={handleMarkAsRead}
           />
         )}
         <SupportChatWindow
           ticket={selectedTicket}
           onTicketReceived={handleTicketReceived}
+          onMarkAsRead={handleMarkAsRead}
+          onNewMessage={handleNewMessage}
         />
       </div>
     </div>

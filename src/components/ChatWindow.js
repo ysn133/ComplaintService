@@ -5,7 +5,7 @@ import { PhoneIcon, ArrowsPointingOutIcon, ChevronDownIcon } from '@heroicons/re
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
-const ChatWindow = ({ ticket }) => {
+const ChatWindow = ({ ticket, onNewMessage }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [ticketId, setTicketId] = useState(null);
@@ -182,7 +182,6 @@ const ChatWindow = ({ ticket }) => {
       stompClientRef.current = client;
       setIsConnected(true);
 
-      // Subscribe to UID immediately
       const uidSub = client.subscribe(`/user/${userId}/uid`, (message) => {
         try {
           console.log('Client: Raw UID message:', message.body);
@@ -215,7 +214,6 @@ const ChatWindow = ({ ticket }) => {
     };
   }, [token, userId]);
 
-  // Subscribe to messages after UID is received
   useEffect(() => {
     if (!isConnected || !stompClientRef.current || !uid) {
       console.log('Client: Skipping message subscription due to missing requirements', {
@@ -241,6 +239,8 @@ const ChatWindow = ({ ticket }) => {
             },
           ]);
         }
+        // Notify parent about new message for any ticket
+        onNewMessage(receivedMessage.ticketId);
       } catch (error) {
         console.error('Client: Error parsing message:', error);
       }
@@ -253,7 +253,7 @@ const ChatWindow = ({ ticket }) => {
         setSubscription(null);
       }
     };
-  }, [isConnected, uid, ticketId]);
+  }, [isConnected, uid, ticketId, onNewMessage]);
 
   useEffect(() => {
     if (!isConnected || !stompClientRef.current || !ticketId) {

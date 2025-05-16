@@ -5,7 +5,7 @@ import { PhoneIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, ChevronDownIcon
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
-const SupportChatWindow = ({ ticket, onTicketReceived, onMarkAsRead }) => {
+const SupportChatWindow = ({ ticket, onTicketReceived, onMarkAsRead, onNewMessage }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [ticketStatus, setTicketStatus] = useState(ticket?.status || 'Open');
@@ -218,6 +218,7 @@ const SupportChatWindow = ({ ticket, onTicketReceived, onMarkAsRead }) => {
             setUid(uidMessage.uid);
             localStorage.setItem('supportUid', uidMessage.uid);
             console.log('Support: UID stored successfully:', uidMessage.uid);
+            setupMessageSubscription();
           } else {
             console.warn('Support: UID message missing uid field:', uidMessage);
           }
@@ -277,27 +278,77 @@ const SupportChatWindow = ({ ticket, onTicketReceived, onMarkAsRead }) => {
         topicSubscription.unsubscribe();
         setTopicSubscription(null);
       }
+      if (subscription) {
+        console.log('Support: Unsubscribing message subscription on cleanup');
+        subscription.unsubscribe();
+        setSubscription(null);
+      }
     };
   }, [token, supportId, onTicketReceived]);
 
-  const setupSubscriptions = () => {
-    if (!isConnected || !stompClientRef.current?.active || !ticketId || !uid) {
-      console.log('Support: Cannot setup subscriptions, requirements missing:', {
+  const setupMessageSubscription = () => {
+    if (!isConnected || !stompClientRef.current?.active || !uid) {
+      console.log('Support: Cannot setup message subscription, requirements missing:', {
         isConnected,
         stompClientActive: !!stompClientRef.current?.active,
-        ticketId,
         uid,
       });
       return;
     }
 
-    console.log('Support: Setting up subscriptions for ticket ID:', ticketId);
+    console.log('Support: Setting up message subscription');
 
     if (subscription) {
       console.log('Support: Unsubscribing existing message subscription');
       subscription.unsubscribe();
       setSubscription(null);
     }
+
+    const newSubscription = stompClientRef.current.subscribe(`/user/${uid}/messages`, (message) => {
+      const receivedMessage = JSON.parse(message.body);
+      console.log('Support: Received WebSocket message:', receivedMessage, 'Current ticketId:', ticketId);
+      if (ticketId && receivedMessage.ticketId === ticketId) {
+        console.log('Support: Message matches selected ticket ID:', ticketId);
+        setMessages((prev) => [
+          ...prev,
+          { ...receivedMessage, content: receivedMessage.message, timestamp: receivedMessage.createdAt },
+        ]);
+      } else {
+        console.warn('Support: Message for non-selected ticket ID:', receivedMessage.ticketId, 'Selected:', ticketId);
+        if (onNewMessage && receivedMessage.ticketId) {
+          console.log('Support: Notifying parent of new message for ticket ID:', receivedMessage.ticketId);
+          onNewMessage(receivedMessage.ticketId);
+        }
+      }
+    });
+    setSubscription(newSubscription);
+  };
+
+  useEffect(() => {
+    if (isConnected && stompClientRef.current?.active && uid) {
+      setupMessageSubscription();
+    }
+    return () => {
+      if (subscription) {
+        console.log('Support: Unsubscribing message subscription on ticket change');
+        subscription.unsubscribe();
+        setSubscription(null);
+      }
+    };
+  }, [isConnected, uid, ticketId]);
+
+  const setupCallSubscriptions = () => {
+    if (!isConnected || !stompClientRef.current?.active || !ticketId) {
+      console.log('Support: Cannot setup call subscriptions, requirements missing:', {
+        isConnected,
+        stompClientActive: !!stompClientRef.current?.active,
+        ticketId,
+      });
+      return;
+    }
+
+    console.log('Support: Setting up call subscriptions for ticket ID:', ticketId);
+
     if (callSubscription) {
       console.log('Support: Unsubscribing existing call subscriptions');
       callSubscription.callSub?.unsubscribe();
@@ -342,41 +393,20 @@ const SupportChatWindow = ({ ticket, onTicketReceived, onMarkAsRead }) => {
     });
 
     setCallSubscription({ callSub, signalSub, responseSub, endSub });
-
-    const newSubscription = stompClientRef.current.subscribe(`/user/${uid}/messages`, (message) => {
-      const receivedMessage = JSON.parse(message.body);
-      console.log('Support: Received WebSocket message:', receivedMessage, 'Current ticketId:', ticketId);
-      if (receivedMessage.ticketId === ticketId) {
-        console.log('Support: Message matches selected ticket ID:', ticketId);
-        setMessages((prev) => [
-          ...prev,
-          { ...receivedMessage, content: receivedMessage.message, timestamp: receivedMessage.createdAt },
-        ]);
-      } else {
-        console.warn('Support: Ignoring message for non-selected ticket ID:', receivedMessage.ticketId, 'Selected:', ticketId);
-      }
-    });
-    setSubscription(newSubscription);
   };
 
   useEffect(() => {
-    if (isConnected && stompClientRef.current?.active && ticketId && uid) {
-      setupSubscriptions();
+    if (isConnected && stompClientRef.current?.active && ticketId) {
+      setupCallSubscriptions();
     } else {
-      console.log('Support: Delaying subscriptions until connection is ready:', {
+      console.log('Support: Delaying call subscriptions until connection is ready:', {
         isConnected,
         stompClientActive: !!stompClientRef.current?.active,
         ticketId,
-        uid,
       });
     }
 
     return () => {
-      if (subscription) {
-        console.log('Support: Unsubscribing message subscription on cleanup');
-        subscription.unsubscribe();
-        setSubscription(null);
-      }
       if (callSubscription) {
         console.log('Support: Unsubscribing call subscriptions on cleanup');
         callSubscription.callSub?.unsubscribe();
@@ -386,7 +416,7 @@ const SupportChatWindow = ({ ticket, onTicketReceived, onMarkAsRead }) => {
         setCallSubscription(null);
       }
     };
-  }, [isConnected, ticketId, uid]);
+  }, [isConnected, ticketId]);
 
   useEffect(() => {
     const fetchMessages = async () => {

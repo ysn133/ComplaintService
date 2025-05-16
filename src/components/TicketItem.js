@@ -1,6 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 const TicketItem = ({ ticket, isSelected, onSelect }) => {
+  const [unreadCount, setUnreadCount] = useState(ticket.unreadCount || 0);
+
+  useEffect(() => {
+
+    setUnreadCount(ticket.unreadCount || 0);
+  }, [ticket.unreadCount]);
+
+
+  useEffect(() => {
+    if (!isSelected) {
+
+      setUnreadCount(ticket.unreadCount || 0);
+    }
+  }, [isSelected, ticket.unreadCount]);
+
   return (
     <div
       onClick={onSelect}
@@ -15,9 +30,9 @@ const TicketItem = ({ ticket, isSelected, onSelect }) => {
           <h3 className="font-semibold">Ticket #{ticket.id}</h3>
           <p className="text-sm truncate">{ticket.subject}</p>
         </div>
-        {ticket.unreadCount > 0 && (
+        {unreadCount > 0 && (
           <span className="bg-accent text-white text-xs rounded-full px-2 py-1">
-            {ticket.unreadCount}
+            {unreadCount}
           </span>
         )}
       </div>

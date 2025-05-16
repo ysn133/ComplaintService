@@ -3,7 +3,7 @@ import React from 'react';
 const SupportTicketItem = ({ ticket, isSelected, onSelect, onMarkAsRead }) => {
   const handleClick = () => {
     onSelect();
-    if (ticket.isNew && onMarkAsRead) {
+    if ((ticket.isNew || ticket.unreadCount > 0) && onMarkAsRead) {
       onMarkAsRead(ticket.id);
     }
   };
