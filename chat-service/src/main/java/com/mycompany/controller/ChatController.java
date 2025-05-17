@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "https://192.168.0.102:3000", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS}, allowedHeaders = "*")
+@CrossOrigin(origins = "https://app.prjsdr.xyz", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS}, allowedHeaders = "*")
 public class ChatController {
 
     private static final Logger logger = LoggerFactory.getLogger(ChatController.class);
@@ -352,7 +352,7 @@ public class ChatController {
             logger.info("Making request to ticket service with headers: {}", headers);
             HttpEntity<String> entity = new HttpEntity<>(headers);
             ResponseEntity<String> response = restTemplate.exchange(
-                "https://192.168.0.102:8093/api/ticket/" + ticketId,
+                "https://tickets.prjsdr.xyz/api/ticket/" + ticketId,
                 HttpMethod.GET,
                 entity,
                 String.class
@@ -516,7 +516,7 @@ public class ChatController {
             logger.info("Making request to ticket service with headers: {}", headers);
             HttpEntity<String> entity = new HttpEntity<>(headers);
             ResponseEntity<String> response = restTemplate.exchange(
-                "https://192.168.0.102:8093/api/ticket/" + ticketId,
+                "https://tickets.prjsdr.xyz/api/ticket/" + ticketId,
                 HttpMethod.GET,
                 entity,
                 String.class
@@ -576,7 +576,7 @@ public class ChatController {
             logger.info("Making request to ticket service with headers: {}", headers);
             HttpEntity<String> entity = new HttpEntity<>(headers);
             ResponseEntity<String> response = restTemplate.exchange(
-                "https://192.168.0.102:8093/api/ticket/" + ticketId,
+                "https://tickets.prjsdr.xyz/api/ticket/" + ticketId,
                 HttpMethod.GET,
                 entity,
                 String.class
@@ -684,7 +684,7 @@ public class ChatController {
             logger.info("Making request to ticket service with headers: {}", headers);
             HttpEntity<String> entity = new HttpEntity<>(headers);
             ResponseEntity<String> response = restTemplate.exchange(
-                "https://192.168.0.102:8093/api/ticket/" + ticketId,
+                "https://tickets.prjsdr.xyz/api/ticket/" + ticketId,
                 HttpMethod.GET,
                 entity,
                 String.class

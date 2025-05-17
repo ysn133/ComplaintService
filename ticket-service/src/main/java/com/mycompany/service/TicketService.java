@@ -33,9 +33,9 @@ public class TicketService {
     @Autowired
     private JwtUtil jwtUtil;
 
-    private String supportServiceUrl = "http://192.168.0.102:8091/api/support/available";
+    private String supportServiceUrl = "http://support-api.prjsdr.xyz/api/support/available";
 
-    private String activeTicketsUrl = "http://192.168.0.102:8091/api/support/activeTickets";
+    private String activeTicketsUrl = "http://support-api.prjsdr.xyz/api/support/activeTickets";
 
     public Ticket createTicket(TicketDTO ticketDTO, Long clientId) {
         logger.debug("Creating ticket for client ID: {}", clientId);

@@ -63,7 +63,7 @@ public class LoginController {
                     // Store JWT in localStorage and redirect with token as GET parameter
                     ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
                     String script = "localStorage.setItem('jwt', '" + jwt + "');" +
-                                   "window.location.href = 'https://192.168.0.102:3000?token=" + jwt + "';";
+                                   "window.location.href = 'https://app.prjsdr.xyz?token=" + jwt + "';";
                     externalContext.addResponseHeader("Content-Type", "text/html");
                     externalContext.responseFlushBuffer();
                     externalContext.getResponseOutputWriter().write("<script>" + script + "</script>");

@@ -33,7 +33,7 @@ const SupportDashboard = () => {
       }
 
       try {
-        const response = await axios.get('https://192.168.0.102:8093/api/tickets', {
+        const response = await axios.get('https://tickets.prjsdr.xyz/api/tickets', {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log('SupportDashboard: API response for tickets:', response.data);

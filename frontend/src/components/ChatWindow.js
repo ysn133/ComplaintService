@@ -92,7 +92,14 @@ const ChatWindow = ({ ticket, onNewMessage }) => {
     }
 
     const pc = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        {
+          urls: 'turn:68.183.139.244:3478',
+          username: 'ysn',
+          credential: 'ysn123',
+        },
+      ],
     });
     console.log('Client: PeerConnection initialized for supportTeamId:', ticket.supportTeamId);
 
@@ -163,7 +170,7 @@ const ChatWindow = ({ ticket, onNewMessage }) => {
       return;
     }
 
-    const socket = new SockJS('https://192.168.0.102:8082/ws', null, { timeout: 30000 });
+    const socket = new SockJS('https://chat.prjsdr.xyz/ws', null, { timeout: 30000 });
     const client = new Client({
       webSocketFactory: () => socket,
       reconnectDelay: 5000,
@@ -329,7 +336,7 @@ const ChatWindow = ({ ticket, onNewMessage }) => {
 
       console.log('Client: Fetching messages for ticket ID:', ticketId);
       try {
-        const response = await axios.get(`https://192.168.0.102:8082/api/chat/messages/${ticketId}`, {
+        const response = await axios.get(`https://chat.prjsdr.xyz/api/chat/messages/${ticketId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log('Client: Received messages:', response.data);

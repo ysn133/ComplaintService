@@ -19,7 +19,8 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "HTTPS=true SSL_CRT_FILE=./server.crt SSL_KEY_FILE=./server.key HOST=192.168.0.102 react-scripts start",
+ "start": "TZ=Europe/Paris HOST=0.0.0.0 HTTPS=true SSL_CRT_FILE=./server.crt SSL_KEY_FILE=./server.key react-scripts start --disable-host-check"
+,
 
     "build": "react-scripts build",
     "test": "react-scripts test",

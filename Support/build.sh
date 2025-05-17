@@ -1,8 +1,8 @@
-cd /home/yassin/ComplaintService/ComplaintService/support
+cd /root/ComplaintService/Support
 mvn clean
 rm -rf target/*
 mvn package
-ls -l target/support.war
+ls -l target/ROOT.war
 
 
 /opt/tomcat2/bin/shutdown.sh
@@ -11,5 +11,5 @@ sudo rm -rf /opt/tomcat2/work/Catalina/localhost/Support/
 sudo rm -rf /opt/tomcat2/logs/*
 
 
-cp /home/yassin/ComplaintService/ComplaintService/Support/target/support.war /opt/tomcat2/webapps/
+cp /root/ComplaintService/Support/target/ROOT.war /opt/tomcat2/webapps/
 /opt/tomcat2/bin/startup.sh

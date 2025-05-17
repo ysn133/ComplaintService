@@ -45,7 +45,7 @@ public class WebSocketClientConfig {
     @PostConstruct
     public void connectToTicketService() {
         try {
-            logger.info("Attempting to connect to ticket service WebSocket at wss://192.168.0.102:8093/ws");
+            logger.info("Attempting to connect to ticket service WebSocket at wss://tickets.prjsdr.xyz/ws");
 
             SSLContext sslContext = SSLContext.getInstance("TLS");
             TrustManager[] trustAllCerts = new TrustManager[]{
@@ -82,7 +82,7 @@ public class WebSocketClientConfig {
             MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
             stompClient.setMessageConverter(converter);
 
-            String url = "wss://192.168.0.102:8093/ws";
+            String url = "wss://tickets.prjsdr.xyz/ws";
             stompClient.connect(url, new StompSessionHandlerAdapter() {
                 @Override
                 public void afterConnected(StompSession session, StompHeaders connectedHeaders) {

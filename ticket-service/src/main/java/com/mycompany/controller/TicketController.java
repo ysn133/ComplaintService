@@ -24,7 +24,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "https://192.168.0.102:3000", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS}, allowedHeaders = "*")
+@CrossOrigin(origins = "https://app.prjsdr.xyz", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS}, allowedHeaders = "*")
 @Validated
 public class TicketController {
     private static final Logger logger = LoggerFactory.getLogger(TicketController.class);
