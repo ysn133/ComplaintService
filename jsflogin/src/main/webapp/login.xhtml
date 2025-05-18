@@ -26,16 +26,25 @@
             .login-card {
                 background: #ffffff;
                 border: 1px solid #dbeafe;
-                box-shadow: 0 6px 25px rgba(59, 130, 246, 0.1);
-                border-radius: 1.25rem;
-                padding: 2rem;
+                box-shadow: 0 10px 30px rgba(59, 130, 246, 0.15);
+                border-radius: 1.5rem;
+                padding: 2.5rem;
                 width: 100%;
-                max-width: 380px;
+                max-width: 400px;
                 transition: transform 0.3s ease, box-shadow 0.3s ease;
             }
             .login-card:hover {
-                transform: scale(1.02);
-                box-shadow: 0 8px 30px rgba(59, 130, 246, 0.15);
+                transform: scale(1.03);
+                box-shadow: 0 12px 35px rgba(59, 130, 246, 0.2);
+            }
+            .profile-pic {
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 3px solid #60a5fa;
+                margin: 0 auto 1.5rem;
+                display: block;
             }
             .input-field {
                 background: #f9fafb;
@@ -72,11 +81,28 @@
                 font-size: 0.875rem;
                 font-weight: 600;
                 transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+                margin-left: 50px;
             }
             .login-button:hover {
                 background: linear-gradient(90deg, #3b82f6, #60a5fa);
                 transform: translateY(-2px);
                 box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            }
+            .forgot-password {
+                color: #60a5fa;
+                font-size: 0.75rem;
+                text-decoration: none;
+                transition: color 0.3s ease;
+            }
+            .forgot-password:hover {
+                color: #3b82f6;
+                text-decoration: underline;
+            }
+            .welcome-text {
+                text-align: center;
+                width: 100%;
+                display: block;
+                margin: 0 auto;
             }
         </style>
         <h:outputScript>
@@ -101,36 +127,71 @@
                 button.addEventListener('mouseout', () => {
                     button.style.boxShadow = 'none';
                 });
+
+                function showToast(message) {
+                    const toast = document.createElement('div');
+                    toast.className = 'bg-red-600 text-white px-4 py-2 rounded-md shadow-lg mb-2 transition-opacity duration-300';
+                    toast.style.opacity = '1';
+                    toast.textContent = message;
+                    document.getElementById('toast-container').appendChild(toast);
+                    
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        setTimeout(() => toast.remove(), 300);
+                    }, 3000);
+                }
+
+                // Check for error message from server
+                const errorMessage = '#{loginController.errorMessage}';
+                if (errorMessage) {
+                    showToast(errorMessage);
+                }
+
+                // Client-side validation on form submit
+                document.getElementById('loginForm').addEventListener('submit', function(e) {
+                    const email = document.getElementById('loginForm:email').value;
+                    const password = document.getElementById('loginForm:password').value;
+                    
+                    if (!email) {
+                        e.preventDefault();
+                        showToast('Email is required');
+                    }
+                    if (!password) {
+                        e.preventDefault();
+                        showToast('Password is required');
+                    }
+                });
             });
         </h:outputScript>
     </h:head>
     <h:body>
         <div class="login-card">
-            <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Login</h2>
+            <img src="https://lastfm.freetls.fastly.net/i/u/avatar170s/79c1f13973d541ebbce96c25be17415b" alt="Profile Picture" class="profile-pic" />
+            <h2 class="text-2xl font-bold text-center text-gray-800 mb-6 welcome-text">Welcome Back</h2>
             <h:form id="loginForm">
                 <h:panelGrid columns="1" styleClass="space-y-5">
                     <div class="relative flex flex-col items-center">
                         <h:outputLabel for="email" value="Email" styleClass="block text-sm font-medium text-gray-600 mb-2" />
                         <i class="fas fa-envelope input-icon"></i>
                         <h:inputText id="email" value="#{loginController.email}" required="true" 
-                                     requiredMessage="Email is required" 
                                      styleClass="input-field" />
                     </div>
                     <div class="relative flex flex-col items-center">
                         <h:outputLabel for="password" value="Password" styleClass="block text-sm font-medium text-gray-600 mb-2" />
                         <i class="fas fa-lock input-icon"></i>
                         <h:inputSecret id="password" value="#{loginController.password}" required="true" 
-                                       requiredMessage="Password is required" 
                                        styleClass="input-field" />
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <h:commandLink value="Forgot Password?" styleClass="forgot-password" action="#{loginController.forgotPassword}" />
                     </div>
                     <div class="flex justify-center">
                         <h:commandButton value="Login" action="#{loginController.login}" 
                                          styleClass="login-button" />
                     </div>
-                    <h:outputText value="#{loginController.errorMessage}" styleClass="text-red-500 text-center text-sm mt-2" 
-                                  rendered="#{not empty loginController.errorMessage}" />
                 </h:panelGrid>
             </h:form>
+            <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
         </div>
     </h:body>
 </html>
