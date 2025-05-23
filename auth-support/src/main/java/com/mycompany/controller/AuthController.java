@@ -152,7 +152,27 @@ public class AuthController {
         Map<String, Object> response = new HashMap<>();
         try {
             Long id = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-            Support support = authService.updateSupport(id, updatedSupport);
+            Support existingSupport = authService.findSupportById(id);
+            if (existingSupport == null) {
+                response.put("status", "ERROR");
+                response.put("message", "Support user not found");
+                logger.warn("Support not found for id: {}", id);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+            // Update only allowed fields if non-null and non-empty
+            if (updatedSupport.getEmail() != null && !updatedSupport.getEmail().isEmpty()) {
+                existingSupport.setEmail(updatedSupport.getEmail());
+            }
+            if (updatedSupport.getFirstname() != null && !updatedSupport.getFirstname().isEmpty()) {
+                existingSupport.setFirstname(updatedSupport.getFirstname());
+            }
+            if (updatedSupport.getLastname() != null && !updatedSupport.getLastname().isEmpty()) {
+                existingSupport.setLastname(updatedSupport.getLastname());
+            }
+            if (updatedSupport.getPassword() != null && !updatedSupport.getPassword().isEmpty()) {
+                existingSupport.setPassword(updatedSupport.getPassword());
+            }
+            Support support = authService.updateSupport(id, existingSupport);
             response.put("status", "SUCCESS");
             response.put("support", support);
             logger.info("Updated support with id: {}", id);
