@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+<h:head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Support Dashboard</title>
+    <style>
+        @import url('https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css');
+        @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
+    </style>
+    <h:outputScript library="js" name="dashboard.js"/>
+    <script>
+        var errorMessage = '<h:outputText value="#{supportController.errorMessage}" escape="true"/>';
+        var successMessage = '<h:outputText value="#{supportController.successMessage}" escape="true"/>';
+    </script>
+</h:head>
+<body class="flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h2 class="text-2xl font-bold text-center mb-6">Support Dashboard</h2>
+        <h:messages styleClass="text-red-600" />
+        <h:form id="supportDashboard" styleClass="space-y-4">
+            <h:inputHidden id="jwt" value="#{supportController.jwt}"/>
+            <h:commandButton id="loadButton" action="#{supportController.loadProfile}" style="display: none;">
+                <f:ajax execute="@form" render="@form loading" 
+                        onevent="function(data) { 
+                            if (data.status === 'begin') document.getElementById('loading').classList.remove('hidden');
+                            if (data.status === 'success') document.getElementById('loading').classList.add('hidden');
+                        }" />
+            </h:commandButton>
+            <div class="relative">
+                <label for="supportDashboard:firstName" class="block text-sm font-medium text-gray-500">First Name</label>
+                <h:inputText id="firstName" value="#{supportController.firstName}" styleClass="input-field w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+            </div>
+            <div class="relative">
+                <label for="supportDashboard:lastName" class="block text-sm font-medium text-gray-500">Last Name</label>
+                <h:inputText id="lastName" value="#{supportController.lastName}" styleClass="input-field w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+            </div>
+            <div class="relative">
+                <label for="supportDashboard:email" class="block text-sm font-medium text-gray-500">Email</label>
+                <h:inputText id="email" value="#{supportController.email}" styleClass="input-field w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+            </div>
+            <div class="relative">
+                <label for="supportDashboard:password" class="block text-sm font-medium text-gray-500">Password (optional)</label>
+                <h:inputSecret id="password" value="#{supportController.password}" styleClass="input-field w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+            </div>
+            <h:commandButton value="Save Changes" action="#{supportController.updateProfile}" styleClass="save-button w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition-colors">
+                <f:ajax execute="@form" render="@form loading" 
+                        onevent="function(data) { 
+                            if (data.status === 'begin') document.getElementById('loading').classList.remove('hidden');
+                            if (data.status === 'success') document.getElementById('loading').classList.add('hidden');
+                        }" />
+            </h:commandButton>
+        </h:form>
+        <h:panelGroup id="loading" styleClass="hidden fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
+            <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
+        </h:panelGroup>
+        <div id="toast-container" class="fixed bottom-4 right-4 space-y-2"></div>
+    </div>
+</body>
+</html>
