@@ -384,7 +384,7 @@ const ChatWindow = ({ ticket, onNewMessage }) => {
     const start = new Date(startTime);
     timerRef.current = setInterval(() => {
       const now = new Date();
-      setCallDuration(Math.floor((now - start) / 1000));
+      setCallDuration(Math.floor((now - start) / 1000) - 3600);
     }, 1000);
   };
 
@@ -736,7 +736,7 @@ const ChatWindow = ({ ticket, onNewMessage }) => {
                     >
                       <p className="text-sm">{msg.content || 'No content'}</p>
                       <p className="text-xs text-gray-300 dark:text-gray-400 mt-1">
-                        {msg.timestamp ? formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true }) : 'No timestamp'}
+                      {msg.timestamp ? formatDistanceToNow(new Date(new Date(msg.timestamp).getTime() + 3600000), { addSuffix: true }) : 'No timestamp'}
                       </p>
                     </div>
                   </div>
