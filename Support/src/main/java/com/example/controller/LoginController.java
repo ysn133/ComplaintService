@@ -43,7 +43,7 @@ public class LoginController {
             // Create HTTP client
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8091/api/auth/login"))
+                    .uri(URI.create("https://support-api.prjsdr.xyz/api/auth/login"))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
                     .build();
