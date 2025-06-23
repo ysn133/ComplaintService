@@ -92,6 +92,7 @@
     <module>admin-auth</module>
     <module>Support</module>
     <module>ticket-service</module>
+    <module>AdmintEst</module>
   </modules>
                           
 
