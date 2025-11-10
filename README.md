@@ -6,16 +6,24 @@ ComplaintService is a multi-module helpdesk platform that blends customer self-s
 
 | Module | Type | Purpose |
 | --- | --- | --- |
-| `chat-service` | Spring Boot (3.2) | Hosts the WebSocket gateway, relays ticket assignment events, and orchestrates voice/video calls via `ChatController`. |
+| `chat-service` | Spring Boot (3.2) | Hosts the WebSocket gateway, relays ticket assignment events, and orchestrates voice calls via `ChatController`. |
 | `ticket-service` | Spring Boot (2.7) | Provides REST APIs for ticket CRUD, publishes STOMP topics, and enforces role-based access through JWT filters. |
 | `auth` | Spring Boot (2.7) | Manages client registration, login, and profile lifecycle through the `AuthController` endpoints. |
 | `auth-support` | Spring Boot (2.7) | Supplies authentication and credential management for support agents, mirroring the flows exposed to clients. |
 | `admin-auth` | Spring Boot (2.7) | Offers administrator login, profile management, and provisioning utilities with input validation. |
 | `frontend` | React + Tailwind | User-facing SPA that consumes the REST APIs, subscribes to ticket events over STOMP, and launches chat sessions. |
 | `Admin`, `Support`, `jsflogin` | JSF web apps | Role-specific portals backed by CDI-managed beans that call the Spring services and propagate JWT tokens. |
-| `AdmintEst` | Legacy JSF stub | Historical experimentation module retained for completeness and regression comparison. |
+
 
 The Maven root POM coordinates shared dependency versions, module builds, and plugin configuration across the Java projects.
+
+## Key capabilities
+
+- **Real-time messaging:** WebSocket-driven conversations allow clients and support agents to exchange messages instantly inside active tickets.
+- **Voice escalation:** The chat-service coordinates audio call setup so teams can jump from text to live conversation when cases require deeper collaboration.
+- **Screen sharing handoffs:** Support agents can request and receive screen shares to diagnose issues alongside the customer in real time.
+- **Ticket lifecycle automation:** The ticket-service tracks creation, assignment, updates, and resolution events while pushing STOMP notifications to every subscribed channel.
+- **Role-specific access:** Dedicated auth services and JSF portals ensure administrators, agents, and customers interact with the workflows appropriate to their roles.
 
 ## Technology stack
 
